@@ -1,0 +1,3 @@
+the recipes and items are missing for particle accelerator, quantumn encoder and converter. please add them.
+
+power consumption calculation is missing the effect of sommersloops: see https://satisfactory.wiki.gg/wiki/Production_amplifier#Power_usage

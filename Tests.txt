@@ -1,0 +1,28 @@
+
+Test one. heavy modular frame production requirements
+
+   if a request comes to produce 10 heavy modular frame, and there is no production yet
+   the following shortfalls should be reported where all numbers are per minute rates:
+
+   10 heavy modular frames 
+
+   50 encased industrial beams
+   50 modular frames
+   75 reinforced iron plate
+
+   2100 screws 
+
+   200 steel pipes
+   150 steel beam
+
+   450 iron plate
+   825 iron rod
+
+   300 concrete
+   1500 iron ingot
+
+   900 steel ingot
+   900 limestone
+
+
+

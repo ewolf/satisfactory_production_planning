@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:satisfactory.wiki.gg)",
+      "Bash(node test.js:*)",
+      "Bash(node -e:*)",
+      "Bash(node -c:*)",
+      "Bash(node check_recipes.js:*)",
+      "Bash(node find_cycles.js:*)",
+      "Bash(node check_bounds.js:*)",
+      "Bash(node trace_hmf.js:*)",
+      "Bash(node verify_fix.js:*)",
+      "Bash(node check_all_recipes.js:*)",
+      "Bash(node:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Satisfactory Production Planning</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Masthead -->
+        <header class="masthead">
+            <h1>Satisfactory Production Planning</h1>
+            <p>Plan and optimize your production lines, power grids, and resource extraction</p>
+
+            <!-- Saving Controls -->
+            <div class="masthead-controls">
+                <label for="upload-input" class="btn btn-primary">
+                    Load JSON File
+                    <input type="file" id="upload-input" accept=".json" style="display: none;">
+                </label>
+                <button id="download-btn" class="btn btn-primary">Save as JSON</button>
+                <button id="clear-cache-btn" class="btn btn-danger">Empty Cache</button>
+            </div>
+
+            <!-- Save Status -->
+            <div id="save-status" class="save-status"></div>
+        </header>
+
+        <!-- Global Settings -->
+        <section class="section">
+            <h2 class="section-header">Global Settings</h2>
+            <div class="section-content">
+                <div class="config-item-fields">
+                    <!-- Belt Level -->
+                    <div class="field">
+                        <label for="belt-select">Belt Level</label>
+                        <select id="belt-select"></select>
+                    </div>
+
+                    <!-- Pipe Level -->
+                    <div class="field">
+                        <label for="pipe-select">Pipe Level</label>
+                        <select id="pipe-select"></select>
+                    </div>
+                </div>
+
+                <!-- Unlocked Alternate Recipes -->
+                <h3>Unlocked Alternate Recipes</h3>
+                <div id="unlocked-recipes-list" class="item-list"></div>
+                <div class="flex flex-gap mt-10">
+                    <select id="alt-recipe-select" class="select" style="flex: 1;">
+                        <option value="">Select an alternate recipe...</option>
+                    </select>
+                    <button id="add-alt-recipe-btn" class="btn btn-small btn-primary">Add Recipe</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Global Report -->
+        <section class="section">
+            <h2 class="section-header">Global Report</h2>
+            <div class="section-content">
+                <!-- Power Summary -->
+                <div class="summary-grid">
+                    <div class="summary-item">
+                        <span class="label">Total Power Produced</span>
+                        <span id="total-power-produced" class="value">0.00 MW</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Total Power Consumed</span>
+                        <span id="total-power-consumed" class="value">0.00 MW</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Power Balance</span>
+                        <span id="power-balance" class="value">0.00 MW</span>
+                    </div>
+                </div>
+
+                <!-- Production Goals -->
+                <h3>Production Goals</h3>
+                <div id="global-goals-list"></div>
+            </div>
+        </section>
+
+        <!-- Two Column Layout: Production Lines and Power Grids -->
+        <div class="two-column">
+            <!-- Production Lines -->
+            <div>
+                <section class="section">
+                    <h2 class="section-header">Production Lines</h2>
+                    <div class="section-content">
+                        <button id="create-production-line-btn" class="btn btn-primary mb-10">Create New Production Line</button>
+                        <div id="production-lines-list"></div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Power Grids -->
+            <div>
+                <section class="section">
+                    <h2 class="section-header">Power Grids</h2>
+                    <div class="section-content">
+                        <button id="create-power-grid-btn" class="btn btn-primary mb-10">Create New Power Grid</button>
+                        <div id="power-grids-list"></div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Scripts -->
+    <script src="model/gameData.js"></script>
+    <script src="model/stateModel.js"></script>
+    <script src="ui.js"></script>
+</body>
+</html>

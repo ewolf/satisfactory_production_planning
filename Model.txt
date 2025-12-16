@@ -1,0 +1,186 @@
+The model consists of the following structures.
+
+
+
+__ PRIMARIES __
+
+The following data structures are immutable. Each one should have a corresponding
+list that is filled in by looking up values. These should be referenced by index in
+their list. For example, a Building object should be reference by its index in
+the Building List.
+
+notes:
+  - All rates are number of item per minute.
+  - HUB biomass burners are a subtype of biomass burner mentioned in https://satisfactory.wiki.gg/wiki/Biomass_Burner - they only produce 20 MW, but also burn fuel 1.5 times slower. 
+  - Look up values from the wiki at https://satisfactory.wiki.gg
+  - clock rate multiplier is (clock speed / 100)
+  - clock power multiplier is (clock speed / 100) ^ 1.321928
+  - sommersloop power factor is (1 + sommersloops / maxSommersloops) ^ 2
+  - sommersloop item factor is (1 + sommersloops * 0.25)
+
+* Belt:
+  - level
+  - rate
+
+* Pipe:
+  - level
+  - rate
+
+* Building: the building data can be found here https://satisfactory.wiki.gg/wiki/Buildings. We are only interesting in Production Extractors
+            ( Miner Mk.1 (Mk.2, Mk.3), Water Extractor, Oil Extractor,  Resource Well Pressurizer (Extractor))
+            Production Smelters (Smelter, Foundry)
+	    Production Manufacturers (Constructor, Assembler, Manufacturer, Packager, Refinery, Blender, Particle Accelerator, Quantum Encoder, Converter)
+            and Power Generator (Biomass Burner, HUB biomass burner, Coal-Powered Generator, Fuel-Powered Generator, Geothermal Generator, Nuclear Power Plant, Alien Power Augmenter)
+  - name
+  - avg_power_in  : in MegaWatt (some buildings have variable power consumption)
+  - avg_power_out : in MegaWatt (some buildings produce variable power)
+  - fuelHash: for power producers, look up the fuels valid for this building and the rate that this building consumes that fuel
+      * fuel -> rate 
+  - is_powerplant : true for Biomass Burner, Coal-Powered Generator, Fuel-Powered Generator, Geothermal Generator, Nuclear Power Plant, Alien Power Augmenter
+  - is_extractor : true for miners, water extractor, oil extractor, resource well pressurizer
+  - is_production : true for all buildings that are not powerplants that have items in their output hash
+  - resourceOutputHash: resource item -> node purity -> rate (see speed table in building page, eg https://satisfactory.wiki.gg/wiki/Miner#100%_Clock_Speed-0 Mining Speed table)
+  - maxSommersloops: can be found here https://satisfactory.wiki.gg/wiki/Somersloop for each building
+
+* Recipe: these can be found by looking for Recipes connected to Production Smelters and Production Manufacturer Buildings (for example from https://satisfactory.wiki.gg/wiki/Smelter)
+  - name
+  - is_alt: boolean if this is an alternative recipe
+  - building : the building that produces this recipe
+  - rate: default production rate
+  - inputHash: input items this recipe takes
+     ~ item -> rate
+  - outputHash: outputs this recipe makes. this can include byproducts like water or silicon.
+     ~ item -> rate
+
+* Item: these are anything that can be an input or an output to any Buildings.
+  - name
+  - is_fluid: boolean
+  - is_ore: boolean
+  - is_resource: boolean (ores, nitrogen, water, crude oil)
+  - is_fuel: boolean
+
+__ SUBSETS OF PRIMARIES __
+
+
+* ProductionBuildingList: a list of buildings with true values for is_production
+
+* PowerBuildingList: a list of builldings with true values for is_powerplant
+
+* ExtractionBuildingList: list of buildings with true for is_extractor
+
+* FuelList: list of items with true values for is_fuel
+
+* FluidList: list of items with true values for is_fluid
+
+* ResourceItemList: list of items with true values for is_resource
+
+* ProductionItemList: list of items produced from production manufacturer buildings
+
+* StandardRecipeList: List of Recipes with is_alt false 
+
+* AlternateRecipeList: List of Recipes with is_alt true
+
+__ STATE DATA __
+
+State data is either calculated or set by the user. When it is set by the user, it must be part of the save data.
+Set by user is marked with (set).
+Calculated values should be calculated from save data but not added to it. Calculated is marked with (calc).
+State data is saved to local storage, or downloaded as a json file. It can be retored by uploading a json file.
+
+Notes:
+
+  - clock speed has a valid range from 0-250%. this affects input and output rates by the percentage given. it effect power rates by (clock speed/100)^ 1.321928
+  - waste output stats can be found https://satisfactory.wiki.gg/wiki/Nuclear_Power_Plant
+  - calculations are performed after a user sets a value
+  - all input and output rates for recipe are capped by global belt rate if the items are not fluids
+  - all input and output rates for recipe are capped by global pipe rate if the items are fluids
+  - all input and output resource rates for buildings are capped by global belt rate if the items are not fluids
+  - all input and output resource rates for buildings are capped by global pipe rate if the items are fluids
+  - in the game, production lines may ship items to each other via vehicle or belt. for example, a line may produce modular frames then ship those to
+    an other line that uses them to make heavy modular frames.
+  
+* UnlockedRecipesList: (set) a list of recipes that have been unlocked. use an array of true/false where the indexes correspond to the alternative recipe subset list
+
+* Max Belt Researched: (set) used to calculate production line caps for non fluid items.
+
+* Max Pipe Researched: (set) used to calculate production line caps for fluid items.
+
+* PowerGridList: (set) initially populated with a default one that starts with a PowerConfiguration for HUB Biomass Burners with 100% clock speed and is named 'HUB Grid'.
+
+* PowerGrid:
+   - name: (set) default 'new grid'
+   - PowerConfigList: (set)
+   - ProductionLineConnectionList (set) calculated from the ProductionLine PowerGridConnectionList
+   - FuelInputHash :(read only) the rate for this fuel supplied by a ProductionLines. the rate is calculated from the set percentage and produced fuel of the line. special case - if this is a HUB biomass burner, the rate is 1.5 slower.
+       ~ fuel -> rate
+   - max avg power output: (calc). iterate PowerConfigs and sum their maxAvgPowerOutput
+   - curr avg power output: (calc) use FuelInputList to create a hash of fuel -> available rate.
+       each PowerConfig consumes the lower of availble fuel rate or the fuelRateRequested.
+       The PowerConig fuelRateGiven field is set to that consumed amount and the currAvgPowerOutput is then calculated for it.
+   - efficiency: (calc after calculating curr avg power) percentage of curr to max avg power output.
+   - waste: (calc) some powerplants produce waste output depending on fuel. calculate by iterating over configs and summing their waste
+       item -> rate
+   - isOn: (calc) true if max avg power output >= sum of avg power consumption from all connected production lines
+
+* PowerConfig
+   - building: (set) valid values from PowerBuildingList
+   - fuelUsed: (set) valid values calculated from building's fuelHash keys when buliding is set. has no value if building is geothermal
+   - clock speed: (set) default 100%
+   - number of buildings in this config (set) integer
+   - fuelRateRequested: (calc) numberOfBuildings * clock rate multiplier * building.fuelHash[fuelUsed] * (1.5 if building is HUB Biomass Burner else 1.0)
+   - fuelRateGiven: (calc) calculation explains in PowerGrid
+   - maxAvgPowerOutput: (calc) average numberOfBuildings * clock rate multiplier * avg_power_out of building.
+   - currAvgPowerOutput: (calc) maxAvgPowerOutput * (fuelRateGiven/fuelRateRequested)
+   - waste: (calc) some powerplants produce waste output depending on fuel. numberOfBuildings * clock rate multiplier * waste output rate
+       item -> rate
+
+* Production Lines - a list that is initially populated with a default production line named 'HUB line'.
+
+* ProductionLine:
+   - name: (set)
+   - ProductionGoalHash: (set) production item -> rate
+   - ProductionConfigList: (set)
+   - ExtractionConfigList: (set)
+   - PowerGridConnection: (set) index of the single power grid this is connected to, or null if not connected
+   - isEnabled: (set) user toggle to enable/disable this production line, default true
+   - isOn: (calc) true if isEnabled is true AND the connected power grid's isOn is true. false if not connected to a grid or if isEnabled is false.
+            NOTE: If isOn is false, the line consumes no power or items, and produces no items. All consumption and production values are zeroed.
+   - FuelsProduced hash: (calc)
+       ~ fuel -> rate
+   - FuelsExported hash of hash: fuel exports to power grids. The fuels are the same as FueldProduced.
+         The selection of power grid and percentage are set by the user.
+       ~ fuel -> power grid -> percentage of fuel produced to send to grid
+   - ItemsImported hash: (calc) sum the items exported by other production lines to this one
+       ~ item -> rate
+   - ItemsExported hash of hash: item exports to other production lines. An item may not both be imported and exported by the same production line. This restriction simplifies the graph of item movement. The items are the same as ItemsProduced.
+       ~ item -> production line -> percentage of total item production
+   - AvgPowerConsumption (calc): iterate through the extraction and production configs and sum their avg power consumption
+   - ItemsProduced (calc): iterate thru extraction config and production config to sum their outputs
+       ~ item -> rate
+   - ItemsConsumed (calc): consumed by the inputs of buildings, sum the production configs outputs
+       ~ item -> rate
+   - ItemShortfalls (calc): items needed but not available. For each production config, compare inputs needed vs items available (from extraction + imports). If not enough, track the shortfall.
+       ~ item -> rate (negative means surplus, positive means shortage)
+
+  * Extraction Config
+    - building: (set) an extraction building
+    - produced item: (set) resource item chosen from valid output values of the selected building
+    - purity: (set) for the node the extractor is on: impure, normal or pure
+    - clock speed: (set) default 100%
+    - number of buildings in this config (set) integer
+    - production rate: (calc) number of buildings * building.resourceOutputHash[item][purity] * clock rate multiplier
+    - avg power consumption: (calc) number of buildings * clock power multiplier * building.avg_power_in
+
+
+  * Production Config
+    - recipe
+    - production building referenced by recipe
+    - clock speed
+    - number of sommersloops used (integer)
+    - inputs: (calc) number of buildings * clock rate multiplier * recipe.inputHash[item]
+       ~ item -> rate
+    - outputs: (calc) number of buildings * clock rate multiplier * (sommersloop item factor) * recipe.outputHash[item]
+       ~ item -> rate
+       NOTE: If ANY input requirement is not met (not enough available items), outputs are ZERO
+    - number of buildings in this config (set) integer
+    - avg power consumption: (calc) number of buildings * clock power multiplier * (sommersloop power factor) * building.avg_power_in

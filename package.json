@@ -1,0 +1,17 @@
+{
+  "name": "satisfactory_production_planning",
+  "version": "0.1.0",
+  "description": "Production management planner for the game Satisfactory.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node model/test.js && node test_shortfalls.js && node test_circuit_board.js"
+  },
+  "keywords": [
+    "satisfactory",
+    "production",
+    "planner"
+  ],
+  "author": "",
+  "license": "UNLICENSED"
+}
