@@ -98,7 +98,7 @@ function createPowerConfig(buildingIndex, fuelIndex, clockSpeed, count) {
     building: buildingIndex,
     fuelUsed: fuelIndex !== undefined ? fuelIndex : null,
     clockSpeed: clockSpeed || 100,
-    count: count || 1,
+    count: Number.isFinite(count) ? count : 1,
     fuelRateRequested: 0,  // Calculated
     fuelRateGiven: 0,  // Calculated
     maxAvgPowerOutput: 0,  // Calculated
@@ -212,7 +212,8 @@ function createProductionLine(name) {
     powerConsumption: 0,  // Calculated
     itemsProduced: new Map(),  // item -> rate (calculated)
     itemsConsumed: new Map(),  // item -> rate (calculated)
-    itemShortfalls: new Map()  // item -> rate (calculated, positive = shortage)
+    itemShortfalls: new Map(),  // item -> rate (calculated, positive = shortage)
+    itemShortfallTotals: new Map()  // item -> total required rate for display
   };
 }
 
@@ -281,6 +282,7 @@ function createProductionConfig(recipeIndex, clockSpeed, sommersloops, count) {
     clockSpeed: clockSpeed || 100,
     sommersloops: sommersloops || 0,
     count: count || 1,
+    requiredInputs: new Map(), // item -> rate (calculated requirement)
     inputs: new Map(),  // item -> rate (calculated)
     outputs: new Map(),  // item -> rate (calculated)
     powerConsumption: 0  // Calculated
@@ -288,21 +290,60 @@ function createProductionConfig(recipeIndex, clockSpeed, sommersloops, count) {
 }
 
 /**
+ * Calculates the maximum allowed clock speed for a production config
+ * based on belt/pipe limits for individual machines.
+ * Each machine cannot have any input or output exceed the belt/pipe limit.
+ */
+function calculateMaxClockSpeedForBeltLimits(config, maxBeltRate, maxPipeRate) {
+  const recipe = gameData.recipes[config.recipe];
+  const sommerloopMult = sommerloopItemFactor(config.sommersloops);
+  let maxAllowedClockSpeed = config.clockSpeed;
+
+  // Check all inputs (per machine)
+  recipe.inputHash.forEach((amountPerCycle, itemIndex) => {
+    const item = gameData.items[itemIndex];
+    const maxRate = item.is_fluid ? maxPipeRate : maxBeltRate;
+    // Convert from amount per cycle to amount per minute at 100% clock speed
+    const perMachineRateAt100 = (amountPerCycle / recipe.rate) * 60;
+
+    // If this input would exceed the limit at 100% clock speed, reduce max allowed clock
+    if (perMachineRateAt100 > maxRate) {
+      const maxClockForThisInput = (maxRate / perMachineRateAt100) * 100;
+      maxAllowedClockSpeed = Math.min(maxAllowedClockSpeed, maxClockForThisInput);
+    }
+  });
+
+  // Check all outputs (per machine)
+  recipe.outputHash.forEach((amountPerCycle, itemIndex) => {
+    const item = gameData.items[itemIndex];
+    const maxRate = item.is_fluid ? maxPipeRate : maxBeltRate;
+    // Convert from amount per cycle to amount per minute at 100% clock speed with sommersloops
+    const perMachineRateAt100 = ((amountPerCycle / recipe.rate) * 60) * sommerloopMult;
+
+    // If this output would exceed the limit at 100% clock speed, reduce max allowed clock
+    if (perMachineRateAt100 > maxRate) {
+      const maxClockForThisOutput = (maxRate / perMachineRateAt100) * 100;
+      maxAllowedClockSpeed = Math.min(maxAllowedClockSpeed, maxClockForThisOutput);
+    }
+  });
+
+  return maxAllowedClockSpeed;
+}
+
+/**
  * Calculates inputs for production config
- * Formula: number of buildings * clock rate multiplier * recipe.inputHash[item]
+ * Formula: number of buildings * clock rate multiplier * (recipe.inputHash[item] / recipe.rate) * 60
  */
 function calculateProductionInputs(config, maxBeltRate, maxPipeRate) {
   const recipe = gameData.recipes[config.recipe];
   const clockMult = clockRateMultiplier(config.clockSpeed);
   const inputs = new Map();
 
-  recipe.inputHash.forEach((rate, itemIndex) => {
-    const item = gameData.items[itemIndex];
-    const calculatedRate = config.count * clockMult * rate;
-
-    // Cap by belt or pipe rate
-    const maxRate = item.is_fluid ? maxPipeRate : maxBeltRate;
-    inputs.set(itemIndex, Math.min(calculatedRate, maxRate));
+  recipe.inputHash.forEach((amountPerCycle, itemIndex) => {
+    // Convert from amount per cycle to amount per minute
+    const perMinuteAt100 = (amountPerCycle / recipe.rate) * 60;
+    const calculatedRate = config.count * clockMult * perMinuteAt100;
+    inputs.set(itemIndex, calculatedRate);
   });
 
   return inputs;
@@ -310,7 +351,7 @@ function calculateProductionInputs(config, maxBeltRate, maxPipeRate) {
 
 /**
  * Calculates outputs for production config
- * Formula: number of buildings * clock rate multiplier * sommersloop item factor * recipe.outputHash[item]
+ * Formula: number of buildings * clock rate multiplier * sommersloop item factor * (recipe.outputHash[item] / recipe.rate) * 60
  */
 function calculateProductionOutputs(config, maxBeltRate, maxPipeRate) {
   const recipe = gameData.recipes[config.recipe];
@@ -318,13 +359,11 @@ function calculateProductionOutputs(config, maxBeltRate, maxPipeRate) {
   const sommerloopMult = sommerloopItemFactor(config.sommersloops);
   const outputs = new Map();
 
-  recipe.outputHash.forEach((rate, itemIndex) => {
-    const item = gameData.items[itemIndex];
-    const calculatedRate = config.count * clockMult * sommerloopMult * rate;
-
-    // Cap by belt or pipe rate
-    const maxRate = item.is_fluid ? maxPipeRate : maxBeltRate;
-    outputs.set(itemIndex, Math.min(calculatedRate, maxRate));
+  recipe.outputHash.forEach((amountPerCycle, itemIndex) => {
+    // Convert from amount per cycle to amount per minute
+    const perMinuteAt100 = (amountPerCycle / recipe.rate) * 60;
+    const calculatedRate = config.count * clockMult * sommerloopMult * perMinuteAt100;
+    outputs.set(itemIndex, calculatedRate);
   });
 
   return outputs;
@@ -340,6 +379,107 @@ function calculateProductionPowerConsumption(config) {
   const sommerloopPowerMult = sommerloopPowerFactor(config.sommersloops, building.maxSommersloops);
 
   return config.count * clockPowerMult * sommerloopPowerMult * building.avg_power_in;
+}
+
+/**
+ * Finds the first standard recipe that produces the given item.
+ * @param {number} itemIndex
+ * @returns {number|null} recipe index or null if none
+ */
+function findStandardRecipeForItem(itemIndex) {
+  for (const recipeIndex of gameData.StandardRecipeList) {
+    const recipe = gameData.recipes[recipeIndex];
+    if (recipe.outputHash.has(itemIndex)) {
+      return recipeIndex;
+    }
+  }
+  return null;
+}
+
+/**
+ * Expands a map of direct shortfalls into a full list that includes
+ * all upstream ingredients needed to cover the shortages.
+ * @param {Map<number, number>} baseShortfalls
+ * @returns {Map<number, number>} expanded shortfalls map
+ */
+function expandShortfalls(baseShortfalls, baseTotals = new Map(), available = new Map()) {
+  const expanded = new Map();
+  const totals = new Map();
+  const queue = [];
+
+  // Copy availability so we can consume it during expansion
+  const avail = new Map(available);
+
+  // Do not let existing availability cancel out the already calculated base shortfalls
+  baseShortfalls.forEach((_, itemIndex) => {
+    if (avail.has(itemIndex)) {
+      avail.set(itemIndex, 0);
+    }
+  });
+
+  function enqueue(itemIndex, amount, totalNeeded) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return;
+    }
+
+    const availableAmt = avail.get(itemIndex) || 0;
+    const remaining = amount - availableAmt;
+
+    if (remaining <= 0) {
+      // Availability covers this amount; consume and skip adding a shortfall
+      avail.set(itemIndex, availableAmt - amount);
+      return;
+    }
+
+    // Consume what we can and record the remaining shortfall
+    const consumed = amount - remaining;
+    if (consumed > 0 || avail.has(itemIndex)) {
+      avail.set(itemIndex, availableAmt - consumed);
+    }
+
+    const current = expanded.get(itemIndex) || 0;
+    expanded.set(itemIndex, current + remaining);
+    const totalCurrent = totals.get(itemIndex) || 0;
+    totals.set(itemIndex, totalCurrent + (Number.isFinite(totalNeeded) ? totalNeeded : remaining));
+    queue.push([itemIndex, remaining]);
+  }
+
+  baseShortfalls.forEach((amount, itemIndex) => {
+    const totalNeeded = baseTotals.get(itemIndex) || amount;
+    enqueue(itemIndex, amount, totalNeeded);
+  });
+
+  while (queue.length > 0) {
+    const [itemIndex, amount] = queue.shift();
+    const item = gameData.items[itemIndex];
+
+    // Stop at raw resources or items without a standard recipe
+    if (item.is_resource) {
+      continue;
+    }
+
+    const recipeIndex = findStandardRecipeForItem(itemIndex);
+    if (recipeIndex === null) {
+      continue;
+    }
+
+    const recipe = gameData.recipes[recipeIndex];
+    const outputRate = recipe.outputHash.get(itemIndex);
+    if (!outputRate || outputRate <= 0) {
+      continue;
+    }
+
+    // Calculate the multiplier needed to satisfy the shortfall for this item
+    const multiplier = amount / outputRate;
+
+    // Enqueue inputs required to cover this shortfall
+    recipe.inputHash.forEach((inputRate, inputItemIndex) => {
+      const needed = inputRate * multiplier;
+      enqueue(inputItemIndex, needed, needed);
+    });
+  }
+
+  return { shortfalls: expanded, totals };
 }
 
 /**
@@ -367,32 +507,44 @@ function updateProductionLineCalculations(line, maxBeltRate, maxPipeRate) {
 
   // Update production configs and check if inputs are available
   line.productionConfigs.forEach(config => {
-    config.inputs = calculateProductionInputs(config, maxBeltRate, maxPipeRate);
-    config.powerConsumption = calculateProductionPowerConsumption(config);
+    // First, apply belt/pipe limits to individual machines
+    const maxAllowedClockSpeed = calculateMaxClockSpeedForBeltLimits(config, maxBeltRate, maxPipeRate);
+    if (maxAllowedClockSpeed < config.clockSpeed) {
+      config.clockSpeed = maxAllowedClockSpeed;
+    }
 
-    // Check if ALL inputs are available
-    let allInputsAvailable = true;
-    config.inputs.forEach((requiredRate, itemIndex) => {
-      const available = itemsAvailable.get(itemIndex) || 0;
-      if (available < requiredRate) {
-        allInputsAvailable = false;
-      }
+    config.requiredInputs = calculateProductionInputs(config, maxBeltRate, maxPipeRate);
+    config.powerConsumption = calculateProductionPowerConsumption(config);
+    config.inputs = new Map();
+
+    // Determine how much of the required inputs can actually be provided
+    let ratio = 1;
+    if (config.requiredInputs.size > 0) {
+      config.requiredInputs.forEach((requiredRate, itemIndex) => {
+        const available = itemsAvailable.get(itemIndex) || 0;
+        const possibleRatio = requiredRate > 0 ? Math.min(1, available / requiredRate) : 1;
+        ratio = Math.min(ratio, possibleRatio);
+      });
+    }
+
+    // Apply consumption based on the ratio
+    config.requiredInputs.forEach((requiredRate, itemIndex) => {
+      const consumed = requiredRate * ratio;
+      config.inputs.set(itemIndex, consumed);
+      const current = itemsAvailable.get(itemIndex) || 0;
+      itemsAvailable.set(itemIndex, current - consumed);
     });
 
-    if (allInputsAvailable) {
+    if (ratio > 0) {
       // Calculate outputs normally
-      config.outputs = calculateProductionOutputs(config, maxBeltRate, maxPipeRate);
+      const rawOutputs = calculateProductionOutputs(config, maxBeltRate, maxPipeRate);
+      config.outputs = new Map();
+      rawOutputs.forEach((rate, itemIndex) => {
+        const produced = rate * ratio;
+        config.outputs.set(itemIndex, produced);
 
-      // Consume the inputs from available pool
-      config.inputs.forEach((rate, itemIndex) => {
         const current = itemsAvailable.get(itemIndex) || 0;
-        itemsAvailable.set(itemIndex, current - rate);
-      });
-
-      // Add outputs to available pool (for downstream configs)
-      config.outputs.forEach((rate, itemIndex) => {
-        const current = itemsAvailable.get(itemIndex) || 0;
-        itemsAvailable.set(itemIndex, current + rate);
+        itemsAvailable.set(itemIndex, current + produced);
       });
     } else {
       // Not enough inputs, produce nothing
@@ -432,12 +584,13 @@ function updateProductionLineCalculations(line, maxBeltRate, maxPipeRate) {
   });
 
   // Calculate shortfalls: total inputs needed - (extraction + imports)
-  line.itemShortfalls.clear();
+  const baseShortfalls = new Map();
+  const baseTotals = new Map();
 
   // Calculate total needed
   const totalNeeded = new Map();
   line.productionConfigs.forEach(config => {
-    config.inputs.forEach((rate, itemIndex) => {
+    config.requiredInputs.forEach((rate, itemIndex) => {
       const current = totalNeeded.get(itemIndex) || 0;
       totalNeeded.set(itemIndex, current + rate);
     });
@@ -467,9 +620,15 @@ function updateProductionLineCalculations(line, maxBeltRate, maxPipeRate) {
     const available = totalAvailable.get(itemIndex) || 0;
     const shortfall = needed - available;
     if (shortfall > 0) {
-      line.itemShortfalls.set(itemIndex, shortfall);
+      baseShortfalls.set(itemIndex, shortfall);
+      baseTotals.set(itemIndex, needed);
     }
   });
+
+  // Expand shortfalls to include upstream ingredients needed for the shortages
+  const expanded = expandShortfalls(baseShortfalls, baseTotals, totalAvailable);
+  line.itemShortfalls = expanded.shortfalls;
+  line.itemShortfallTotals = expanded.totals;
 
   // Calculate fuels produced
   line.fuelsProduced.clear();
@@ -522,6 +681,8 @@ function updatePowerStates(state) {
       line.itemsProduced = new Map();
       line.itemsConsumed = new Map();
       line.fuelsProduced = new Map();
+      line.itemShortfalls = new Map();
+      line.itemShortfallTotals = new Map();
 
       // Also zero out individual config values
       line.extractionConfigs.forEach(config => {
@@ -531,6 +692,7 @@ function updatePowerStates(state) {
 
       line.productionConfigs.forEach(config => {
         config.inputs = new Map();
+        config.requiredInputs = new Map();
         config.outputs = new Map();
         config.powerConsumption = 0;
       });
