@@ -181,6 +181,112 @@ function SatisfactoryCalculator() {
     return ['Assembler', 'Manufacturer', 'Blender', 'Particle Accelerator', 'Refinery'].includes(recipe.building);
   }).sort();
 
+  // LocalStorage key
+  const STORAGE_KEY = 'satisfactory_production_state';
+
+  // Save state to localStorage
+  const saveToLocalStorage = () => {
+    const state = {
+      targetItems,
+      resourcePurities,
+      powerShards,
+      selectedBelt,
+      selectedPipe,
+      selectedMiner
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  };
+
+  // Load state from localStorage
+  const loadFromLocalStorage = () => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        if (state.targetItems) setTargetItems(state.targetItems);
+        if (state.resourcePurities) setResourcePurities(state.resourcePurities);
+        if (state.powerShards) setPowerShards(state.powerShards);
+        if (state.selectedBelt) setSelectedBelt(state.selectedBelt);
+        if (state.selectedPipe) setSelectedPipe(state.selectedPipe);
+        if (state.selectedMiner) setSelectedMiner(state.selectedMiner);
+        return true;
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+    return false;
+  };
+
+  // Export state to JSON file
+  const exportToFile = () => {
+    const state = {
+      targetItems,
+      resourcePurities,
+      powerShards,
+      selectedBelt,
+      selectedPipe,
+      selectedMiner
+    };
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'satisfactory_production_plan.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import state from JSON file
+  const importFromFile = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const state = JSON.parse(e.target.result);
+          if (state.targetItems) setTargetItems(state.targetItems);
+          if (state.resourcePurities) setResourcePurities(state.resourcePurities);
+          if (state.powerShards) setPowerShards(state.powerShards);
+          if (state.selectedBelt) setSelectedBelt(state.selectedBelt);
+          if (state.selectedPipe) setSelectedPipe(state.selectedPipe);
+          if (state.selectedMiner) setSelectedMiner(state.selectedMiner);
+          alert('Production plan loaded successfully!');
+        } catch (error) {
+          console.error('Error importing file:', error);
+          alert('Error loading file. Please ensure it is a valid JSON file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+    // Reset the input so the same file can be loaded again
+    event.target.value = '';
+  };
+
+  // Clear all data
+  const clearAllData = () => {
+    if (confirm('Are you sure you want to clear all data? This will reset everything to default values.')) {
+      setTargetItems([{ item: 'Heavy Modular Frame', rate: 2 }]);
+      setResourcePurities({});
+      setPowerShards({});
+      setSelectedBelt('Mk.1');
+      setSelectedPipe('Mk.1');
+      setSelectedMiner('Mk.1');
+      setResults(null);
+      localStorage.removeItem(STORAGE_KEY);
+      alert('All data cleared!');
+    }
+  };
+
+  // Auto-load from localStorage on mount
+  useEffect(() => {
+    loadFromLocalStorage();
+  }, []);
+
+  // Auto-save to localStorage whenever state changes
+  useEffect(() => {
+    saveToLocalStorage();
+  }, [targetItems, resourcePurities, powerShards, selectedBelt, selectedPipe, selectedMiner]);
+
   // Recalculate whenever global settings change
   useEffect(() => {
     if (results) {
@@ -674,7 +780,38 @@ function SatisfactoryCalculator() {
           <h1 className="text-4xl font-bold text-orange-400 mb-2 text-center">
             Satisfactory Production Calculator
           </h1>
-          <p className="text-gray-400 text-center mb-8">Plan your factory production chains</p>
+          <p className="text-gray-400 text-center mb-4">Plan your factory production chains</p>
+
+          {/* Data Management Section */}
+          <div className="bg-gray-800 rounded-lg p-4 mb-6 border-2 border-blue-700">
+            <h2 className="text-lg font-bold text-blue-400 mb-3 text-center">Data Management</h2>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                onClick={exportToFile}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200 flex items-center gap-2"
+              >
+                <span>📥</span> Export to File
+              </button>
+              <label className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200 cursor-pointer flex items-center gap-2">
+                <span>📤</span> Import from File
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importFromFile}
+                  className="hidden"
+                />
+              </label>
+              <button
+                onClick={clearAllData}
+                className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded transition-colors duration-200 flex items-center gap-2"
+              >
+                <span>🗑️</span> Clear All Data
+              </button>
+            </div>
+            <p className="text-xs text-gray-400 text-center mt-2">
+              Data is automatically saved to your browser's local storage
+            </p>
+          </div>
 
           {/* Globals Section */}
           <div className="bg-gray-800 rounded-lg p-6 mb-6 border-2 border-orange-700">
@@ -856,6 +993,9 @@ function SatisfactoryCalculator() {
                       const key = entry.key;
                       const maxShards = entry.intCount * 3;
 
+                      // Get recipe for this item to show inputs
+                      const recipe = RECIPES[entry.item];
+
                       // Calculate total power for this prodconf
                       let totalPower = 0;
                       const basePower = BUILDINGS[entry.building].power;
@@ -917,8 +1057,8 @@ function SatisfactoryCalculator() {
                               max={maxShards}
                               value={entry.totalShards || 0}
                               onChange={(e) => handleShardChange(key, e.target.value)}
-                              className="bg-gray-600 text-white text-sm rounded px-3 py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
-                              style={{ width: `${Math.max(4, maxShards.toString().length + 2)}ch` }}
+                              className="bg-gray-600 text-white text-sm rounded py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
+                              style={{ width: `${Math.max(4, maxShards.toString().length + 2)}ch`, paddingLeft: '15px', paddingRight: '15px' }}
                             />
                           </div>
 
@@ -969,6 +1109,74 @@ function SatisfactoryCalculator() {
                           <div className="text-sm text-gray-500">
                             Power: {totalPower.toFixed(1)} MW
                           </div>
+
+                          {/* Input Rates */}
+                          {recipe && recipe.inputs && Object.keys(recipe.inputs).length > 0 && (() => {
+                            // Calculate if any inputs are belt-limited per machine
+                            let maxDownclockNeeded = null;
+                            let limitingInput = null;
+
+                            const inputDisplays = Object.entries(recipe.inputs).map(([inputItem, inputAmount]) => {
+                              const inputPerMinute = (inputAmount / recipe.time) * 60;
+                              const totalInputRate = inputPerMinute * entry.actualRate / ((recipe.output / recipe.time) * 60);
+
+                              const isFluid = FLUID_ITEMS.has(inputItem);
+                              const capacity = isFluid ? PIPE_TIERS[selectedPipe] : BELT_TIERS[selectedBelt];
+                              const transportType = isFluid ? 'pipe' : 'belt';
+
+                              const perMachineCapped = inputPerMinute > capacity;
+                              const totalCapped = totalInputRate > capacity;
+
+                              // Calculate downclocking needed if per-machine capped
+                              if (perMachineCapped) {
+                                const downclockPercent = (capacity / inputPerMinute) * 100;
+                                if (maxDownclockNeeded === null || downclockPercent < maxDownclockNeeded) {
+                                  maxDownclockNeeded = downclockPercent;
+                                  limitingInput = inputItem;
+                                }
+                              }
+
+                              let statusColor = 'text-green-400';
+                              let statusIcon = '✓';
+                              let statusText = '';
+
+                              if (perMachineCapped) {
+                                const downclockPercent = (capacity / inputPerMinute) * 100;
+                                statusColor = 'text-red-400';
+                                statusIcon = '🔴';
+                                statusText = ` (${inputPerMinute.toFixed(1)}/min per machine > ${capacity} ${transportType} - downclock to ${downclockPercent.toFixed(1)}% or use manifold/higher tier)`;
+                              } else if (totalCapped) {
+                                // Calculate how many belts/pipes needed
+                                const beltsNeeded = Math.ceil(totalInputRate / capacity);
+                                statusColor = 'text-blue-400';
+                                statusIcon = '→';
+                                statusText = ` (${beltsNeeded} ${transportType}s needed)`;
+                              }
+
+                              return (
+                                <div key={inputItem} className={`text-xs ${statusColor} flex items-start gap-1`}>
+                                  <span className="flex-shrink-0">{statusIcon}</span>
+                                  <span className="flex-1">
+                                    {inputItem}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
+                                  </span>
+                                </div>
+                              );
+                            });
+
+                            return (
+                              <div className="mt-3 pt-3 border-t border-gray-600">
+                                <div className="text-xs font-semibold text-gray-400 mb-1">Inputs:</div>
+                                {inputDisplays}
+                                {maxDownclockNeeded !== null && (
+                                  <div className="mt-2 p-2 bg-red-900 bg-opacity-30 rounded border border-red-600">
+                                    <div className="text-xs text-red-300 font-semibold">
+                                      ⚠ Belt/Pipe Limited: Downclock to {maxDownclockNeeded.toFixed(1)}% to match {limitingInput} supply
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       );
                     })}
@@ -1001,6 +1209,10 @@ function SatisfactoryCalculator() {
           Default recipes only • Underclocking calculated when buildings would overproduce
           <br />
           Note: Production configurations are consolidated when possible, but split when exceeding belt/pipe capacity
+          <br />
+          <span className="text-green-400">✓</span> = Within capacity •
+          <span className="text-blue-400">→</span> = Multiple belts/pipes needed •
+          <span className="text-red-400">🔴</span> = Per-machine exceeds capacity (requires manifold or higher tier)
         </div>
       </div>
     </div>
