@@ -3,115 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Satisfactory Production Planning</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Satisfactory Production Calculator</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Masthead -->
-        <header class="masthead">
-            <h1>Satisfactory Production Planning</h1>
-            <p>Plan and optimize your production lines, power grids, and resource extraction</p>
+    <!--
+    ================================================================================
+    SATISFACTORY PRODUCTION CALCULATOR - DEVELOPER NOTES
+    ================================================================================
+    
+    CRITICAL: When modifying this file, UPDATE THIS COMMENT SECTION to reflect
+    any changes to the architecture, flow, or key decisions.
+    
+    ================================================================================
+    ARCHITECTURE OVERVIEW
+    ================================================================================
+    
+    This calculator determines the buildings, resources, and power needed to produce
+    target items in Satisfactory, accounting for:
+    - Belt/pipe capacity limits (items can't flow faster than infrastructure allows)
+    - Input constraints (buildings can't run if inputs can't be delivered)
+    - Power shard optimization (minimize buildings by overclocking with shards)
+    - Underclocking (reduce power by running fewer buildings slower)
+    
+    ================================================================================
+    CALCULATION FLOW
+    ================================================================================
+    
+    1. RECURSIVE REQUIREMENT CALCULATION
+       - Start with target items (e.g., "5 Smart Plating/min")
+       - Recursively calculate all intermediate items and raw resources needed
+       - Consolidate by building-item pair (e.g., all "Constructor → Screw" together)
+       - Track which items consume each intermediate (for display)
+    
+    2. INPUT CONSTRAINT CHECKING (BEFORE SPLITTING)
+       - Iteratively check if inputs can be delivered (belt/pipe capacity + supply)
+       - Reduce production rates when inputs are bottlenecked
+       - This stabilizes BEFORE we split prodconfs
+       - Preserves inputConstrained/limitingInput/limitingReason flags
+    
+    3. CAPACITY-BASED SPLITTING
+       - Split consolidated prodconfs ONLY when they exceed belt/pipe capacity
+       - Example: 185 screws/min with 60/min belt → 4 prodconfs (60, 60, 60, 5)
+       - Mark splits with isCapped flag (true for full-capacity splits only)
+       - Preserve input constraint info from step 2
+    
+    4. RESOURCE ADJUSTMENT
+       - Recalculate raw resource needs based on actual production rates
+       - Adjust miner/extractor counts to match consumption
+    
+    5. OPTIMIZATION & DISPLAY
+       - Optimize building counts with power shards (minimize buildings)
+       - Calculate underclocking when buildings would overproduce
+       - Calculate total power consumption
+       - Display warnings for capacity limits and input constraints
+    
+    ================================================================================
+    KEY DESIGN DECISIONS
+    ================================================================================
+    
+    WHY NO POST-SPLIT CONSTRAINT CHECKING:
+    - Input constraints are calculated BEFORE splitting to get stable rates
+    - Splitting is purely about belt/pipe capacity, not production limits
+    - Post-split checking would cause rates to change AFTER isCapped flags are set
+    - This creates confusing UI where <60/min shows "belt limit reached" warning
+    
+    WHY CONSOLIDATE THEN SPLIT:
+    - User wants to see ONE prodconf for "Screws" when possible
+    - Only split into multiple when exceeding capacity (60/min on Belt Mk.1)
+    - This keeps the UI clean: "2 Constructors" instead of two separate entries
+    
+    WHY TRACK CONSUMERS:
+    - Shows "Used by: Rotor, Reinforced Iron Plate" on intermediates
+    - Helps users understand the production chain
+    
+    ================================================================================
+    COMMON PITFALLS TO AVOID
+    ================================================================================
+    
+    1. DON'T do input constraint checking after splitting
+       → Causes rates to change after isCapped flags are set
+       → Results in confusing warnings
+    
+    2. DON'T use duplicate variable declarations (let, const)
+       → Causes JavaScript syntax errors
+       → Always check if variable already exists in scope
+    
+    3. DON'T forget to preserve constraint info when splitting
+       → inputConstrained, limitingInput, limitingReason must carry over
+       → Otherwise split prodconfs lose their warning context
+    
+    4. DON'T mark all splits as "capped"
+       → Only full-capacity splits (at 60/60) should show belt warning
+       → Remainder split (like 5/60) should not show warning
+    
+    5. DON'T recalculate resources before adjusting production
+       → Calculate actual consumption AFTER all constraints are applied
+       → Then update miner/extractor counts to match
+    
+    ================================================================================
+    VARIABLE NAMING CONVENTIONS
+    ================================================================================
+    
+    buildingProduction: Object mapping "Building|Item" to consolidated production data
+    finalProdconfs: Array of split/unsplit prodconfs ready for display
+    itemTotalProduction: Total production rate by item (used for constraint checking)
+    actualResourceNeeds: Raw resources needed based on actual (constrained) production
+    
+    ================================================================================
+    END OF DEVELOPER NOTES
+    ================================================================================
+    -->
+    <div id="root"></div>
 
-            <!-- Saving Controls -->
-            <div class="masthead-controls">
-                <label for="upload-input" class="btn btn-primary">
-                    Load JSON File
-                    <input type="file" id="upload-input" accept=".json" style="display: none;">
-                </label>
-                <button id="download-btn" class="btn btn-primary">Save as JSON</button>
-                <button id="clear-cache-btn" class="btn btn-danger">Empty Cache</button>
-            </div>
-
-            <!-- Save Status -->
-            <div id="save-status" class="save-status"></div>
-        </header>
-
-        <!-- Global Settings -->
-        <section class="section">
-            <h2 class="section-header">Global Settings</h2>
-            <div class="section-content">
-                <div class="config-item-fields">
-                    <!-- Belt Level -->
-                    <div class="field">
-                        <label for="belt-select">Belt Level</label>
-                        <select id="belt-select"></select>
-                    </div>
-
-                    <!-- Pipe Level -->
-                    <div class="field">
-                        <label for="pipe-select">Pipe Level</label>
-                        <select id="pipe-select"></select>
-                    </div>
-                </div>
-
-                <!-- Unlocked Alternate Recipes -->
-                <h3>Unlocked Alternate Recipes</h3>
-                <div id="unlocked-recipes-list" class="item-list"></div>
-                <div class="flex flex-gap mt-10">
-                    <select id="alt-recipe-select" class="select" style="flex: 1;">
-                        <option value="">Select an alternate recipe...</option>
-                    </select>
-                    <button id="add-alt-recipe-btn" class="btn btn-small btn-primary">Add Recipe</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Global Report -->
-        <section class="section">
-            <h2 class="section-header">Global Report</h2>
-            <div class="section-content">
-                <!-- Power Summary -->
-                <div class="summary-grid">
-                    <div class="summary-item">
-                        <span class="label">Total Power Produced</span>
-                        <span id="total-power-produced" class="value">0.00 MW</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="label">Total Power Consumed</span>
-                        <span id="total-power-consumed" class="value">0.00 MW</span>
-                    </div>
-                    <div class="summary-item">
-                        <span class="label">Power Balance</span>
-                        <span id="power-balance" class="value">0.00 MW</span>
-                    </div>
-                </div>
-
-                <!-- Production Goals -->
-                <h3>Production Goals</h3>
-                <div id="global-goals-list"></div>
-            </div>
-        </section>
-
-        <!-- Two Column Layout: Production Lines and Power Grids -->
-        <div class="two-column">
-            <!-- Production Lines -->
-            <div>
-                <section class="section">
-                    <h2 class="section-header">Production Lines</h2>
-                    <div class="section-content">
-                        <button id="create-production-line-btn" class="btn btn-primary mb-10">Create New Production Line</button>
-                        <div id="production-lines-list"></div>
-                    </div>
-                </section>
-            </div>
-
-            <!-- Power Grids -->
-            <div>
-                <section class="section">
-                    <h2 class="section-header">Power Grids</h2>
-                    <div class="section-content">
-                        <button id="create-power-grid-btn" class="btn btn-primary mb-10">Create New Power Grid</button>
-                        <div id="power-grids-list"></div>
-                    </div>
-                </section>
-            </div>
-        </div>
-    </div>
-
-    <!-- Load Scripts -->
-    <script src="model/gameData.js"></script>
-    <script src="model/stateModel.js"></script>
-    <script src="ui.js"></script>
+    <script type="text/babel" src="satprod.js"></script>
 </body>
 </html>
