@@ -12,7 +12,8 @@
       "Bash(node verify_fix.js:*)",
       "Bash(node check_all_recipes.js:*)",
       "Bash(node:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
