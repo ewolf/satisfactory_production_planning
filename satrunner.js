@@ -81,6 +81,7 @@ function SatisfactoryCalculator() {
 
   // Extract BUILDINGS constant
   const BUILDINGS = CONSTS.BUILDINGS;
+  const BUILDING2IDS = CONSTS.BUILDING2IDS;
 
   // Create RECIPES lookup by name (for easier access)
   const RECIPES = CONSTS.RECIPES.reduce((acc, recipe) => {
@@ -97,6 +98,61 @@ function SatisfactoryCalculator() {
     return 100;
   };
 
+  // Helper to calculate results from tiers
+  const calculateResults = (line) => {
+    if (!line.tiers) {
+      return null;
+    }
+
+    const buildings = [];
+    const resources = {};
+    let totalPower = 0;
+
+    // Process each tier
+    line.tiers.forEach((tier, tierIdx) => {
+      Object.values(tier).forEach(node => {
+        const building = node.recipe ? node.recipe.building : (node.item.is_ore ? `${selectedMiner}` : 'Water Extractor');
+        const buildingId = CONSTS.BUILDING2IDS[building];
+        console.log( buildingId, CONSTS.BUILDINGS[buildingId], "BLEP" );
+        const basePower = buildingId !== undefined ? CONSTS.BUILDINGS[buildingId].power : 0;
+        const machinePower = basePower * node.machines;
+        totalPower += machinePower;
+
+        buildings.push({
+          key: `${building}|${node.item.name}|${tierIdx}`,
+          building: building,
+          item: node.item.name,
+          intCount: node.machines,
+          rate: node.rate,
+          purity: 'Normal',
+          consumers: []
+        });
+
+        // Track raw resources
+        if (node.item.is_ore || node.item.name === 'Water' || node.item.name === 'Crude Oil' || node.item.name === 'Nitrogen Gas') {
+          resources[node.item.name] = node.rate;
+        }
+      });
+    });
+
+    // Calculate target item results
+    const targetItemResults = line.targetItems.map(target => {
+      const itemName = CONSTS.ITEMS[target.item_id].name;
+      return {
+        item: itemName,
+        requestedRate: target.rate,
+        actualRate: target.rate // Assume achievable for now
+      };
+    });
+
+    return {
+      buildings,
+      resources,
+      power: totalPower,
+      targetItemResults
+    };
+  };
+
   const calculate = () => {
     const lineIdx = world.activeLineIdx;
     const line = world.productionLines[lineIdx];
@@ -104,11 +160,14 @@ function SatisfactoryCalculator() {
     // Call setupProdConf which populates line.tiers
     satdata.setupProdConf(line, world);
 
+    // Calculate results from tiers
+    const results = calculateResults(line);
+
     // Update state with the modified line
     setWorld({
       ...world,
       productionLines: world.productionLines.map((l, idx) =>
-        idx === lineIdx ? line : l
+        idx === lineIdx ? { ...l, tiers: line.tiers, results } : l
       )
     });
   };
@@ -118,10 +177,12 @@ function SatisfactoryCalculator() {
     const line = world.productionLines[lineIdx];
     satdata.setupProdConf(line, world);
 
+    // Calculate results from tiers
+    const results = calculateResults(line);
     setWorld({
       ...world,
       productionLines: world.productionLines.map((l, idx) =>
-        idx === lineIdx ? line : l
+        idx === lineIdx ? { ...l, tiers: line.tiers, results } : l
       )
     });
   };
@@ -1305,7 +1366,7 @@ function SatisfactoryCalculator() {
                               Total Power Required
                             </h3>
                             <p className="text-2xl font-bold text-white">
-                              {line.results.power.toFixed(2)} MW
+                              {line.results.power && line.results.power.toFixed(2)} MW
                             </p>
                           </div>
                         </div>
@@ -1336,10 +1397,10 @@ function SatisfactoryCalculator() {
                                       <p className="text-white font-semibold text-sm">{target.item}</p>
                                       <div className="ml-3">
                                         <p className="text-white text-xs">
-                                          Requested: <span className="font-bold">{target.requestedRate.toFixed(2)}/min</span>
+                                          Requested: <span className="font-bold">{target.requestedRate &&target.requestedRate.toFixed(2)}/min</span>
                                         </p>
                                         <p className="text-white text-xs">
-                                          Achievable: <span className="font-bold">{target.actualRate.toFixed(2)}/min</span>
+                                          Achievable: <span className="font-bold">{target.actualRate &&target.actualRate.toFixed(2)}/min</span>
                                         </p>
                                       </div>
                                     </div>
@@ -1359,201 +1420,202 @@ function SatisfactoryCalculator() {
                               Production Configurations
                             </h3>
                             <div className="grid md:grid-cols-2 gap-3">
-                              {line.results.buildings
-                    .sort((a, b) => a.building.localeCompare(b.building) || a.item.localeCompare(b.item))
-                    .map((entry) => {
-                      const key = entry.key;
-                      const maxShards = entry.intCount * 3;
+                              {line.results && line.results.buildings
+                               .sort((a, b) => a.building.localeCompare(b.building) || a.item.localeCompare(b.item))
+                               .map((entry) => {
+                                 const key = entry.key;
+                                 const maxShards = entry.intCount * 3;
 
-                      // Get recipe for this item to show inputs
-                      const recipe = RECIPES[entry.item];
+                                 // Get recipe for this item to show inputs
+                                 const recipe = RECIPES[entry.item];
 
-                      // Calculate total power for this prodconf
-                      let totalPower = 0;
-                      const basePower = BUILDINGS[entry.building].power;
+                                 // Calculate total power for this prodconf
+                                 let totalPower = 0;
+                                 console.log(BUILDINGS[BUILDING2IDS[entry.building]],entry,'bld');
+                                 const basePower = BUILDINGS[BUILDING2IDS[entry.building]].power;
 
-                      if (entry.shardDistribution) {
-                        // Calculate power for each machine with its shards
-                        for (const shards of entry.shardDistribution) {
-                          const clockSpeed = getClockSpeed(shards);
-                          const actualPower = basePower * Math.pow(clockSpeed / 100, 1.321928);
-                          totalPower += actualPower;
-                        }
-                      } else if (entry.underclocking) {
-                        const clockSpeed = entry.underclocking / 100;
-                        const actualPower = basePower * Math.pow(clockSpeed, 1.321928);
-                        totalPower = actualPower * entry.intCount;
-                      } else {
-                        totalPower = basePower * entry.intCount;
-                      }
+                                 if (entry.shardDistribution) {
+                                   // Calculate power for each machine with its shards
+                                   for (const shards of entry.shardDistribution) {
+                                     const clockSpeed = getClockSpeed(shards);
+                                     const actualPower = basePower * Math.pow(clockSpeed / 100, 1.321928);
+                                     totalPower += actualPower;
+                                   }
+                                 } else if (entry.underclocking) {
+                                   const clockSpeed = entry.underclocking / 100;
+                                   const actualPower = basePower * Math.pow(clockSpeed, 1.321928);
+                                   totalPower = actualPower * entry.intCount;
+                                 } else {
+                                   totalPower = basePower * entry.intCount;
+                                 }
 
-                      return (
-                        <div key={key} className="bg-gray-700 rounded p-4 border border-gray-600">
-                          <div className="font-semibold text-orange-300 mb-1">
-                            {entry.building} → {entry.item}
-                            {entry.totalSplits > 1 && (
-                              <span className="text-yellow-400 ml-2">
-                                #{entry.splitIndex} of {entry.totalSplits}
-                              </span>
-                            )}
+                                 return (
+                                   <div key={key} className="bg-gray-700 rounded p-4 border border-gray-600">
+                                     <div className="font-semibold text-orange-300 mb-1">
+                                       {entry.building} → {entry.item}
+                                       {entry.totalSplits > 1 && (
+                                         <span className="text-yellow-400 ml-2">
+                                           #{entry.splitIndex} of {entry.totalSplits}
+                                         </span>
+                                       )}
+                                     </div>
+                                     {entry.consumers && entry.consumers.length > 0 && (
+                                       <div className="text-xs text-gray-400 mb-2">
+                                         Used by: {entry.consumers.join(', ')}
+                                       </div>
+                                     )}
+
+                                     {/* Purity selector for miners/extractors */}
+                                     {entry.purity && (
+                                       <div className="mb-2">
+                                         <select
+                                           value={entry.purity}
+                                           onChange={(e) => handlePurityChange(line.id, entry.item, e.target.value)}
+                                           className="w-full bg-gray-600 text-white text-sm rounded px-2 py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
+                                         >
+                                           <option value="Impure">Impure</option>
+                                           <option value="Normal">Normal</option>
+                                           <option value="Pure">Pure</option>
+                                         </select>
+                                       </div>
+                                     )}
+
+                                     {/* Power Shards Input */}
+                                     <div className="mb-2 flex items-center gap-2">
+                                       <label className="text-xs text-gray-400 flex-shrink-0">
+                                         Power Shards (max {maxShards}):
+                                       </label>
+                                       <input
+                                         type="number"
+                                         min="0"
+                                         max={maxShards}
+                                         value={entry.totalShards || 0}
+                                         onChange={(e) => handleShardChange(line.id, key, e.target.value)}
+                                         className="bg-gray-600 text-white text-sm rounded py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
+                                         style={{ width: `${Math.max(4, maxShards.toString().length + 2)}ch`, paddingLeft: '15px', paddingRight: '15px' }}
+                                       />
+                                     </div>
+
+                                     <div className="flex items-baseline justify-between mb-2">
+                                       <div className="text-2xl font-bold text-white">
+                                         {entry.intCount}
+                                       </div>
+                                       <div className="text-sm text-gray-400">
+                                         {entry.inputConstrained && entry.requestedRate ? (
+                                           <span>
+                                             {entry.actualRate && entry.actualRate.toFixed(2)}/min
+                                             <span className="text-red-400 ml-1">
+                                               (req: {entry.requestedRate.toFixed(2)})
+                                             </span>
+                                           </span>
+                                         ) : (
+                                           <span>{entry.actualRate && entry.actualRate.toFixed(2)}/min</span>
+                                         )}
+                                       </div>
+                                     </div>
+
+                                     {/* Input Constraint Warning */}
+                                     {entry.inputConstrained && entry.limitingReason === 'supply' && (
+                                       <div className="text-sm text-red-400 mb-1 bg-red-900 bg-opacity-30 p-1 rounded">
+                                         ⚠ Input supply limited: {entry.limitingInput} → {entry.actualRate && entry.actualRate.toFixed(2)}/min
+                                       </div>
+                                     )}
+
+                                     {/* Overproduction Info */}
+                                     {entry.overproducing && (
+                                       <div className="text-sm text-blue-400 mb-1 bg-blue-900 bg-opacity-30 p-1 rounded">
+                                         ℹ Production reduced to match consumption
+                                       </div>
+                                     )}
+
+                                     {/* Shard Distribution Display */}
+                                     {entry.shardDistribution && (
+                                       <div className="text-sm text-cyan-400 mb-1">
+                                         Shards: [{entry.shardDistribution.join(',')}]
+                                       </div>
+                                     )}
+
+                                     {entry.underclocking && !entry.shardDistribution && (
+                                       <div className="text-sm text-yellow-400 mb-1">
+                                         Underclocking: {entry.underclocking.toFixed(1)}%
+                                       </div>
+                                     )}
+                                     <div className="text-sm text-gray-500">
+                                       Power: {totalPower.toFixed(1)} MW
+                                     </div>
+
+                                     {/* Input Rates */}
+                                     {recipe && recipe.inputs && Object.keys(recipe.inputs).length > 0 && (() => {
+                                       // Calculate if any inputs are belt-limited per machine
+                                       let maxDownclockNeeded = null;
+                                       let limitingInput = null;
+
+                                       const inputDisplays = Object.entries(recipe.inputs).map(([inputItem, inputAmount]) => {
+                                         const inputPerMinute = (inputAmount / recipe.time) * 60;
+                                         const totalInputRate = inputPerMinute * entry.actualRate / ((recipe.output / recipe.time) * 60);
+
+                                         const isFluid = FLUID_ITEMS.has(inputItem);
+                                         const capacity = isFluid ? PIPE_TIERS[selectedPipe] : BELT_TIERS[selectedBelt];
+                                         const transportType = isFluid ? 'pipe' : 'belt';
+
+                                         const perMachineCapped = inputPerMinute > capacity;
+                                         const totalCapped = totalInputRate > capacity;
+
+                                         // Calculate downclocking needed if per-machine capped
+                                         if (perMachineCapped) {
+                                           const downclockPercent = (capacity / inputPerMinute) * 100;
+                                           if (maxDownclockNeeded === null || downclockPercent < maxDownclockNeeded) {
+                                             maxDownclockNeeded = downclockPercent;
+                                             limitingInput = inputItem;
+                                           }
+                                         }
+
+                                         let statusColor = 'text-green-400';
+                                         let statusIcon = '✓';
+                                         let statusText = '';
+
+                                         if (perMachineCapped) {
+                                           const downclockPercent = (capacity / inputPerMinute) * 100;
+                                           statusColor = 'text-red-400';
+                                           statusIcon = '🔴';
+                                           statusText = ` (${inputPerMinute.toFixed(1)}/min per machine > ${capacity} ${transportType} - downclock to ${downclockPercent.toFixed(1)}% or use manifold/higher tier)`;
+                                         } else if (totalCapped) {
+                                           // Calculate how many belts/pipes needed
+                                           const beltsNeeded = Math.ceil(totalInputRate / capacity);
+                                           statusColor = 'text-blue-400';
+                                           statusIcon = '→';
+                                           statusText = ` (${beltsNeeded} ${transportType}s needed)`;
+                                         }
+
+                                         return (
+                                           <div key={inputItem} className={`text-xs ${statusColor} flex items-start gap-1`}>
+                                             <span className="flex-shrink-0">{statusIcon}</span>
+                                             <span className="flex-1">
+                                               {inputItem}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
+                                             </span>
+                                           </div>
+                                         );
+                                       });
+
+                                       return (
+                                         <div className="mt-3 pt-3 border-t border-gray-600">
+                                           <div className="text-xs font-semibold text-gray-400 mb-1">Inputs:</div>
+                                           {inputDisplays}
+                                           {maxDownclockNeeded !== null && (
+                                             <div className="mt-2 p-2 bg-red-900 bg-opacity-30 rounded border border-red-600">
+                                               <div className="text-xs text-red-300 font-semibold">
+                                                 ⚠ Belt/Pipe Limited: Downclock to {maxDownclockNeeded.toFixed(1)}% to match {limitingInput} supply
+                                               </div>
+                                             </div>
+                                           )}
+                                         </div>
+                                       );
+                                     })()}
+                                   </div>
+                                 );
+                               })}
+                            </div>
                           </div>
-                          {entry.consumers && entry.consumers.length > 0 && (
-                            <div className="text-xs text-gray-400 mb-2">
-                              Used by: {entry.consumers.join(', ')}
-                            </div>
-                          )}
-
-                          {/* Purity selector for miners/extractors */}
-                          {entry.purity && (
-                            <div className="mb-2">
-                              <select
-                                value={entry.purity}
-                                onChange={(e) => handlePurityChange(line.id, entry.item, e.target.value)}
-                                className="w-full bg-gray-600 text-white text-sm rounded px-2 py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
-                              >
-                                <option value="Impure">Impure</option>
-                                <option value="Normal">Normal</option>
-                                <option value="Pure">Pure</option>
-                              </select>
-                            </div>
-                          )}
-
-                          {/* Power Shards Input */}
-                          <div className="mb-2 flex items-center gap-2">
-                            <label className="text-xs text-gray-400 flex-shrink-0">
-                              Power Shards (max {maxShards}):
-                            </label>
-                            <input
-                              type="number"
-                              min="0"
-                              max={maxShards}
-                              value={entry.totalShards || 0}
-                              onChange={(e) => handleShardChange(line.id, key, e.target.value)}
-                              className="bg-gray-600 text-white text-sm rounded py-1 border border-gray-500 focus:border-orange-500 focus:outline-none"
-                              style={{ width: `${Math.max(4, maxShards.toString().length + 2)}ch`, paddingLeft: '15px', paddingRight: '15px' }}
-                            />
-                          </div>
-
-                          <div className="flex items-baseline justify-between mb-2">
-                            <div className="text-2xl font-bold text-white">
-                              {entry.intCount}
-                            </div>
-                            <div className="text-sm text-gray-400">
-                              {entry.inputConstrained && entry.requestedRate ? (
-                                <span>
-                                  {entry.actualRate.toFixed(2)}/min
-                                  <span className="text-red-400 ml-1">
-                                    (req: {entry.requestedRate.toFixed(2)})
-                                  </span>
-                                </span>
-                              ) : (
-                                <span>{entry.actualRate.toFixed(2)}/min</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Input Constraint Warning */}
-                          {entry.inputConstrained && entry.limitingReason === 'supply' && (
-                            <div className="text-sm text-red-400 mb-1 bg-red-900 bg-opacity-30 p-1 rounded">
-                              ⚠ Input supply limited: {entry.limitingInput} → {entry.actualRate.toFixed(2)}/min
-                            </div>
-                          )}
-
-                          {/* Overproduction Info */}
-                          {entry.overproducing && (
-                            <div className="text-sm text-blue-400 mb-1 bg-blue-900 bg-opacity-30 p-1 rounded">
-                              ℹ Production reduced to match consumption
-                            </div>
-                          )}
-
-                          {/* Shard Distribution Display */}
-                          {entry.shardDistribution && (
-                            <div className="text-sm text-cyan-400 mb-1">
-                              Shards: [{entry.shardDistribution.join(',')}]
-                            </div>
-                          )}
-
-                          {entry.underclocking && !entry.shardDistribution && (
-                            <div className="text-sm text-yellow-400 mb-1">
-                              Underclocking: {entry.underclocking.toFixed(1)}%
-                            </div>
-                          )}
-                          <div className="text-sm text-gray-500">
-                            Power: {totalPower.toFixed(1)} MW
-                          </div>
-
-                          {/* Input Rates */}
-                          {recipe && recipe.inputs && Object.keys(recipe.inputs).length > 0 && (() => {
-                            // Calculate if any inputs are belt-limited per machine
-                            let maxDownclockNeeded = null;
-                            let limitingInput = null;
-
-                            const inputDisplays = Object.entries(recipe.inputs).map(([inputItem, inputAmount]) => {
-                              const inputPerMinute = (inputAmount / recipe.time) * 60;
-                              const totalInputRate = inputPerMinute * entry.actualRate / ((recipe.output / recipe.time) * 60);
-
-                              const isFluid = FLUID_ITEMS.has(inputItem);
-                              const capacity = isFluid ? PIPE_TIERS[selectedPipe] : BELT_TIERS[selectedBelt];
-                              const transportType = isFluid ? 'pipe' : 'belt';
-
-                              const perMachineCapped = inputPerMinute > capacity;
-                              const totalCapped = totalInputRate > capacity;
-
-                              // Calculate downclocking needed if per-machine capped
-                              if (perMachineCapped) {
-                                const downclockPercent = (capacity / inputPerMinute) * 100;
-                                if (maxDownclockNeeded === null || downclockPercent < maxDownclockNeeded) {
-                                  maxDownclockNeeded = downclockPercent;
-                                  limitingInput = inputItem;
-                                }
-                              }
-
-                              let statusColor = 'text-green-400';
-                              let statusIcon = '✓';
-                              let statusText = '';
-
-                              if (perMachineCapped) {
-                                const downclockPercent = (capacity / inputPerMinute) * 100;
-                                statusColor = 'text-red-400';
-                                statusIcon = '🔴';
-                                statusText = ` (${inputPerMinute.toFixed(1)}/min per machine > ${capacity} ${transportType} - downclock to ${downclockPercent.toFixed(1)}% or use manifold/higher tier)`;
-                              } else if (totalCapped) {
-                                // Calculate how many belts/pipes needed
-                                const beltsNeeded = Math.ceil(totalInputRate / capacity);
-                                statusColor = 'text-blue-400';
-                                statusIcon = '→';
-                                statusText = ` (${beltsNeeded} ${transportType}s needed)`;
-                              }
-
-                              return (
-                                <div key={inputItem} className={`text-xs ${statusColor} flex items-start gap-1`}>
-                                  <span className="flex-shrink-0">{statusIcon}</span>
-                                  <span className="flex-1">
-                                    {inputItem}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
-                                  </span>
-                                </div>
-                              );
-                            });
-
-                            return (
-                              <div className="mt-3 pt-3 border-t border-gray-600">
-                                <div className="text-xs font-semibold text-gray-400 mb-1">Inputs:</div>
-                                {inputDisplays}
-                                {maxDownclockNeeded !== null && (
-                                  <div className="mt-2 p-2 bg-red-900 bg-opacity-30 rounded border border-red-600">
-                                    <div className="text-xs text-red-300 font-semibold">
-                                      ⚠ Belt/Pipe Limited: Downclock to {maxDownclockNeeded.toFixed(1)}% to match {limitingInput} supply
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
 
                           {/* Raw Resources */}
                           <div className="bg-gray-700 rounded-lg p-4 border-2 border-orange-700">
