@@ -435,7 +435,7 @@ ITEMS.forEach( item => item.get_recipes = recipesForItem );
 CONSTS.RECIPES.forEach( rec => {
   rec.outputs.forEach( output => {
     const item = ITEMS[output.item_id];
-if(!item)console.log(rec,output,"NOOOO");
+    if(!item)console.log(rec,output,"NOOOO");
     if (!item.recipes) { 
       item.recipes = {};      
     }
@@ -477,6 +477,11 @@ CONSTS.BUILDING2IDS = CONSTS.BUILDINGS.reduce( (acc,val) => {
   return acc;
 }, {});
 
+const BUILDING_NAME2BUILDING = CONSTS.BUILDINGS.reduce( (acc,val) => {
+  acc[val.name] = val;
+  return acc;
+}, {});
+
 CONSTS.BUILDING2RECIPES = CONSTS.RECIPES.reduce( (acc,val) => {
   const b = val.building;
   if (! acc[b] ) {
@@ -498,8 +503,10 @@ const setupProdConf = (line,world) => {
   const needed = {};
   
   const addNeeded = (item,recipe,rate_adjust) => {
-    console.log( `    ${item.name}`);
+//    console.log( `    ${item.name}`);
     let node = needed[item.item_id];
+
+    // death check
     if (!recipe && !item.is_ore && ((item.name != 'Water' && item.name != 'Nitrogen Gas' && item.name != 'Crude Oil') || ! item.is_resource) ) {
       console.log( '))))))', item, item.recipes,recipe, rate_adjust, '<<<<<' );
       asdfasdf();
@@ -541,16 +548,26 @@ const setupProdConf = (line,world) => {
           addNeeded(inp_item, null, extract_rate_adj);
         }
       });
+
+      node.building = BUILDING_NAME2BUILDING[recipe.building];
+    } else if (item.name == 'Water') {
+      node.building = BUILDING_NAME2BUILDING['Water Extractor'];
+    } else if (item.name == 'Nitrogen Gas') {
+      node.building = BUILDING_NAME2BUILDING['Resource Well Extractor'];
+    } else if (item.name == 'Crud Oil') {
+      node.building = BUILDING_NAME2BUILDING['Oil Extractor'];
     }
+
       //return more;
   };
 
-  line.targetItems.forEach( targ => {
-    const targItem = ITEMS[targ.item_id];
-    const targRate = targ.rate;
+  Object.keys(line.targetItems).forEach( item_id => {
+    const targRate = line.targetItems[item_id];
+    const targItem = ITEMS[item_id];
+
     const recipe = targItem.get_recipes(world)[0];
-    const inp_output_rate = recipe.outputs.filter( op => op.item_id == targ.item_id )[0].rate;
-    const rate_adjust = targ.rate / inp_output_rate;
+    const inp_output_rate = recipe.outputs.filter( op => op.item_id == item_id )[0].rate;
+    const rate_adjust = targRate / inp_output_rate;
     addNeeded( targItem, recipe, rate_adjust );
 /*
     const more = addNeeded( targItem, recipe, rate_adjust );
@@ -568,8 +585,8 @@ const setupProdConf = (line,world) => {
 
     if (recipe) {
       const recipe_output_rate = recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate;
-      node.machines = Math.ceil( node.rate / recipe_output_rate );
-      node.clocking =  node.rate / (node.machines * recipe_output_rate);
+      node.building_count = Math.ceil( node.rate / recipe_output_rate );
+      node.clocking =  node.rate / (node.building_count * recipe_output_rate);
       recipe.inputs.forEach( inp => {
         const inp_node = needed[inp.item_id];
         node.supplied_by_nodes[inp_node.item.item_id] = inp_node;
@@ -579,24 +596,24 @@ const setupProdConf = (line,world) => {
     } else if(node.item.is_ore) {
       // TODO: node purity
       const miner_output_rate = 60;
-      node.machines = Math.ceil( node.rate / miner_output_rate );
-      node.clocking = node.rate / (node.machines * miner_output_rate);
+      node.building_count = Math.ceil( node.rate / miner_output_rate );
+      node.clocking = node.rate / (node.building_count * miner_output_rate);
     } else if(node.item.name == "Water") {
       // TODO: fill in, user can choose between pumped or fracked water. assume water for now
       const extractor_output_rate = 120;
-      node.machines = Math.ceil( node.rate / extractor_output_rate );
-      node.clocking = node.machines * node.rate / extractor_output_rate;
+      node.building_count = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.building_count * node.rate / extractor_output_rate;
       
     } else if(node.item.name == "Nitrogen Gas") {
       // TODO: node purity
       const extractor_output_rate = 60;
-      node.machines = Math.ceil( node.rate / extractor_output_rate );
-      node.clocking = node.machines * node.rate / extractor_output_rate;
+      node.building_count = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.building_count * node.rate / extractor_output_rate;
     } else if(node.item.name == "Crude Oil") {
       // TODO: node purity
       const extractor_output_rate = 60;
-      node.machines = Math.ceil( node.rate / extractor_output_rate );
-      node.clocking = node.machines * node.rate / extractor_output_rate;
+      node.building_count = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.building_count * node.rate / extractor_output_rate;
     }
   } );
 
@@ -620,13 +637,13 @@ const setupProdConf = (line,world) => {
     Object.keys( node.supplied_by_nodes ).forEach( iid => updateTier(iid,tier_idx+1) );
   };
 
-  line.targetItems.forEach( targ => {
-    updateTier( targ.item_id, 0 );
+  Object.keys(line.targetItems).forEach( item_id => {
+    updateTier( item_id, 0 );
   });
 
-  //console.log(tiers);
-  console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ), "TIERS");
+//  console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ), "TIERS");
 
+//  console.log(tiers);
   return line;
 };
 
@@ -645,6 +662,20 @@ if (typeof module !== 'undefined' && module.exports) {
   };
 }
 
+let print_prodline = line => {
+  const tiers = line.tiers;
+
+  tiers.forEach( (tier,idx) => {
+    console.log( `==== TIER ${idx} =====` );
+    tier.forEach( prodconf => {
+      const item = prodconf.item;
+      const recipe = prodconf.recipe;
+      console.log( `    ------ ${item.name} -----`);
+      
+    } );
+  });
+}
+
 const TEST = true;
 
 if (TEST) {
@@ -652,19 +683,25 @@ if (TEST) {
     let name = rec.name;
     if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
     if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
+    const item = CONSTS.NAME2ITEM[name];
+    const rate = rec.outputs.filter(o => o.item_id==item.item_id)[0].rate;
+    const items = {};
+    items[item.item_id] = rate;
     let line = {
       name: 'test prod line',
-      targetItems: [CONSTS.NAME2ITEM[name]],
+      targetItems: items,
     };
     
-    //  if (!name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
+    //  If (!name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
     //  if (name == 'Cable') {
     //  if (name == 'Dark Matter Residue') {
     //    console.log( '=====', line, rec, '==--==' );
 //    if (true||name.match(/Rocket Fuel/)) {
-//     if (name.match(/Uranium Waste/)) {
-     if (true||name.match(/Plutonium Fuel Rod/)) {
-       setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+     if (name.match(/Uranium Waste/)) {
+//     if (true||Name.match(/Plutonium Fuel Rod/)) {
+       const line = setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+       print_prodline(line);
+
      }
 
   } );

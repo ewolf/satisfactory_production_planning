@@ -24,7 +24,7 @@ function SatisfactoryCalculator() {
   // UI state for global settings
   const [selectedBelt, setSelectedBelt] = useState('Mk.1');
   const [selectedPipe, setSelectedPipe] = useState('Mk.1');
-  const [selectedMiner, setSelectedMiner] = useState('Miner Mk.3');
+  const [selectedMiner, setSelectedMiner] = useState('Miner Mk.1');
   const [selectedAlternates, setSelectedAlternates] = useState([]);
   const [alternateRecipesExpanded, setAlternateRecipesExpanded] = useState(false);
   const [editingLineId, setEditingLineId] = useState(null);
@@ -113,21 +113,20 @@ function SatisfactoryCalculator() {
       Object.values(tier).forEach(node => {
         const building = node.recipe ? node.recipe.building : (node.item.is_ore ? `${selectedMiner}` : 'Water Extractor');
         const buildingId = CONSTS.BUILDING2IDS[building];
-        console.log( buildingId, CONSTS.BUILDINGS[buildingId], "BLEP" );
         const basePower = buildingId !== undefined ? CONSTS.BUILDINGS[buildingId].power : 0;
-        const machinePower = basePower * node.machines;
-        totalPower += machinePower;
+        const buildingPower = basePower * node.building_count;
+        totalPower += buildingPower;
 
         buildings.push({
           key: `${building}|${node.item.name}|${tierIdx}`,
           building: building,
           item: node.item.name,
-          intCount: node.machines,
+          intCount: node.building_count,
           rate: node.rate,
           purity: 'Normal',
           consumers: []
         });
-
+debugger;
         // Track raw resources
         if (node.item.is_ore || node.item.name === 'Water' || node.item.name === 'Crude Oil' || node.item.name === 'Nitrogen Gas') {
           resources[node.item.name] = node.rate;
@@ -906,7 +905,7 @@ function SatisfactoryCalculator() {
               fill="#fff"
               fontSize="12"
             >
-              {node.machines.toFixed(1)} machines
+              {node.building_count.toFixed(0)} buildings
             </text>
           </>
         )}
@@ -1045,7 +1044,7 @@ function SatisfactoryCalculator() {
                 >
                   {Object.entries(MINER_TIERS).map(([tier, data]) => (
                     <option key={tier} value={tier}>
-                      {tier} - {data.base}/min
+                      {tier} - {data.rate}/min
                     </option>
                   ))}
                 </select>
@@ -1431,11 +1430,10 @@ function SatisfactoryCalculator() {
 
                                  // Calculate total power for this prodconf
                                  let totalPower = 0;
-                                 console.log(BUILDINGS[BUILDING2IDS[entry.building]],entry,'bld');
                                  const basePower = BUILDINGS[BUILDING2IDS[entry.building]].power;
 
                                  if (entry.shardDistribution) {
-                                   // Calculate power for each machine with its shards
+                                   // Calculate power for each building with its shards
                                    for (const shards of entry.shardDistribution) {
                                      const clockSpeed = getClockSpeed(shards);
                                      const actualPower = basePower * Math.pow(clockSpeed / 100, 1.321928);
@@ -1546,23 +1544,27 @@ function SatisfactoryCalculator() {
 
                                      {/* Input Rates */}
                                      {recipe && recipe.inputs && Object.keys(recipe.inputs).length > 0 && (() => {
-                                       // Calculate if any inputs are belt-limited per machine
+                                       // Calculate if any inputs are belt-limited per building
                                        let maxDownclockNeeded = null;
                                        let limitingInput = null;
 
-                                       const inputDisplays = Object.entries(recipe.inputs).map(([inputItem, inputAmount]) => {
-                                         const inputPerMinute = (inputAmount / recipe.time) * 60;
+                                       const inputDisplays = recipe.inputs.map( input => {
+                                         const inputItem = ITEMS[input.item_id];
+                                         const inputPerMinute = (input.amount / recipe.time) * 60;
                                          const totalInputRate = inputPerMinute * entry.actualRate / ((recipe.output / recipe.time) * 60);
+                                         
+                                         debugger;
+                                         console.log(recipe,entry,input,`ENTRY ${inputPerMinute}, ${totalInputRate}`);
 
-                                         const isFluid = FLUID_ITEMS.has(inputItem);
+                                         const isFluid = inputItem.is_fluid;
                                          const capacity = isFluid ? PIPE_TIERS[selectedPipe] : BELT_TIERS[selectedBelt];
                                          const transportType = isFluid ? 'pipe' : 'belt';
 
-                                         const perMachineCapped = inputPerMinute > capacity;
+                                         const perBuildingCapped = inputPerMinute > capacity;
                                          const totalCapped = totalInputRate > capacity;
 
-                                         // Calculate downclocking needed if per-machine capped
-                                         if (perMachineCapped) {
+                                         // Calculate downclocking needed if per-building capped
+                                         if (perBuildingCapped) {
                                            const downclockPercent = (capacity / inputPerMinute) * 100;
                                            if (maxDownclockNeeded === null || downclockPercent < maxDownclockNeeded) {
                                              maxDownclockNeeded = downclockPercent;
@@ -1574,11 +1576,11 @@ function SatisfactoryCalculator() {
                                          let statusIcon = '✓';
                                          let statusText = '';
 
-                                         if (perMachineCapped) {
+                                         if (perBuildingCapped) {
                                            const downclockPercent = (capacity / inputPerMinute) * 100;
                                            statusColor = 'text-red-400';
                                            statusIcon = '🔴';
-                                           statusText = ` (${inputPerMinute.toFixed(1)}/min per machine > ${capacity} ${transportType} - downclock to ${downclockPercent.toFixed(1)}% or use manifold/higher tier)`;
+                                           statusText = ` (${inputPerMinute.toFixed(1)}/min per building > ${capacity} ${transportType} - downclock to ${downclockPercent.toFixed(1)}% or use manifold/higher tier)`;
                                          } else if (totalCapped) {
                                            // Calculate how many belts/pipes needed
                                            const beltsNeeded = Math.ceil(totalInputRate / capacity);
@@ -1588,10 +1590,10 @@ function SatisfactoryCalculator() {
                                          }
 
                                          return (
-                                           <div key={inputItem} className={`text-xs ${statusColor} flex items-start gap-1`}>
+                                           <div key={input.item_id} className={`text-xs ${statusColor} flex items-start gap-1`}>
                                              <span className="flex-shrink-0">{statusIcon}</span>
                                              <span className="flex-1">
-                                               {inputItem}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
+                                               {input.name}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
                                              </span>
                                            </div>
                                          );
@@ -1604,7 +1606,7 @@ function SatisfactoryCalculator() {
                                            {maxDownclockNeeded !== null && (
                                              <div className="mt-2 p-2 bg-red-900 bg-opacity-30 rounded border border-red-600">
                                                <div className="text-xs text-red-300 font-semibold">
-                                                 ⚠ Belt/Pipe Limited: Downclock to {maxDownclockNeeded.toFixed(1)}% to match {limitingInput} supply
+                                                 ⚠ Belt/Pipe Limited: Downclock to {maxDownclockNeeded.toFixed(1)}% to match {limitingInput.name} supply
                                                </div>
                                              </div>
                                            )}
@@ -1652,7 +1654,7 @@ function SatisfactoryCalculator() {
           <br />
           <span className="text-green-400">✓</span> = Within capacity •
           <span className="text-blue-400">→</span> = Multiple belts/pipes needed •
-          <span className="text-red-400">🔴</span> = Per-machine exceeds capacity (requires manifold or higher tier)
+          <span className="text-red-400">🔴</span> = Per-building exceeds capacity (requires manifold or higher tier)
         </div>
       </div>
     </div>
