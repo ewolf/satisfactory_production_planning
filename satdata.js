@@ -1,0 +1,549 @@
+const CONSTS = {
+// Belt and Pipe tiers
+  BELT_TIERS: {
+    'Mk.1': 60,
+    'Mk.2': 120,
+    'Mk.3': 270,
+    'Mk.4': 480,
+    'Mk.5': 780,
+    'Mk.6': 1200
+  },
+
+  PIPE_TIERS: {
+    'Mk.1': 300,
+    'Mk.2': 600
+  },
+
+  // Building power consumption data (array format)
+  BUILDINGS: [
+    { id: 0, name: 'Assembler', power: 15 },
+    { id: 1, name: 'Blender', power: 75 },
+    { id: 2, name: 'Constructor', power: 4 },
+    { id: 3, name: 'Foundry', power: 16 },
+    { id: 4, name: 'Manufacturer', power: 55 },
+    { id: 5, name: 'Miner Mk.1', power: 5, base: 60 },
+    { id: 6, name: 'Miner Mk.2', power: 12, base: 120 },
+    { id: 7, name: 'Miner Mk.3', power: 30, base: 240 },
+    { id: 8, name: 'Oil Extractor', power: 40 },
+    { id: 9, name: 'Particle Accelerator', power: 500 },
+    { id: 10, name: 'Quantum Encoder', power: 1000 },
+    { id: 11, name: 'Refinery', power: 30 },
+    { id: 12, name: 'Resource Well Extractor', power: 0 },
+    { id: 13, name: 'Smelter', power: 4 },
+    { id: 14, name: 'Water Extractor', power: 20 }
+  ],
+
+// All items (auto-generated from recipes)
+  ITEMS: [
+    // Resources - Ores (indices 0-9)
+    { id: 0, name: "Iron Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 1, name: "Copper Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 2, name: "Limestone", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 3, name: "Coal", is_fluid: false, is_ore: true, is_resource: true, is_fuel: true },
+    { id: 4, name: "Caterium Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 5, name: "Raw Quartz", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 6, name: "Sulfur", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 7, name: "Bauxite", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 8, name: "Uranium", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { id: 9, name: "SAM", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+
+    // Resources - Fluids (indices 10-12)
+    { id: 10, name: "Water", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+    { id: 11, name: "Crude Oil", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+    { id: 12, name: "Nitrogen Gas", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+
+    // Biomass Fuels (indices 13-17)
+    { id: 13, name: "Leaves", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 14, name: "Wood", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 15, name: "Biomass", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 16, name: "Solid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 17, name: "Packaged Liquid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+
+    // Intermediate Fluids (indices 18-27)
+    { id: 18, name: "Heavy Oil Residue", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 19, name: "Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 20, name: "Liquid Biofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 21, name: "Turbofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 22, name: "Alumina Solution", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 23, name: "Sulfuric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 24, name: "Nitric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 25, name: "Dissolved Silica", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 26, name: "Rocket Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 27, name: "Ionized Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+
+    // Basic Ingots (indices 28-32)
+    { id: 28, name: "Iron Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 29, name: "Copper Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 30, name: "Steel Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 31, name: "Caterium Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 32, name: "Aluminum Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+
+    // Basic Components (indices 33-52)
+    { id: 33, name: "Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 34, name: "Iron Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 35, name: "Screw", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 36, name: "Reinforced Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 37, name: "Concrete", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 38, name: "Steel Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 39, name: "Steel Pipe", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 40, name: "Wire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 41, name: "Cable", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 42, name: "Copper Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 43, name: "Quartz Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 44, name: "Silica", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 45, name: "Quickwire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 46, name: "Aluminum Casing", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 47, name: "Petroleum Coke", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 48, name: "Plastic", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 49, name: "Rubber", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 50, name: "Polymer Resin", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 51, name: "Compacted Coal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 52, name: "Aluminum Scrap", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+
+    // Advanced Components (indices 53-60)
+    { id: 53, name: "Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 54, name: "Encased Industrial Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 55, name: "Heavy Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 56, name: "Rotor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 57, name: "Stator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 58, name: "Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 59, name: "Circuit Board", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 60, name: "Computer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 61, name: "Uranium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+
+    // Advanced Components - Continued (indices 62-88)
+    { id: 62, name: "AI Limiter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 63, name: "Electromagnetic Control Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 64, name: "Alclad Aluminum Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 65, name: "Versatile Framework", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 66, name: "Automated Wiring", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 67, name: "Heat Sink", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 68, name: "Empty Canister", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 69, name: "High-Speed Connector", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 70, name: "Crystal Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 71, name: "Supercomputer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 72, name: "Battery", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 73, name: "Adaptive Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 74, name: "Radio Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 75, name: "Turbo Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 76, name: "Cooling System", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 77, name: "Gas Filter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 78, name: "Fused Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 79, name: "Encased Uranium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 80, name: "Magnetic Field Generator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 81, name: "Nuclear Pasta", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 82, name: "Neural-Quantum Processor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 83, name: "Superposition Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 84, name: "AI Expansion Server", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 85, name: "Alien Power Matrix", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 86, name: "Ficsonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { id: 87, name: "Synthetic Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+
+    // Late-Game Resources (indices 89-98)
+    { id: 88, name: "Copper Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 89, name: "Pressure Conversion Cube", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 90, name: "Excited Photonic Matter", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 91, name: "SAM Fluctuator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 92, name: "Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 93, name: "Ficsonium", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 94, name: "Ficsite Trigon", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 95, name: "Time Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 96, name: "Dark Matter Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 97, name: "Dark Matter Residue", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { id: 98, name: "Fabric", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+
+    // Shit it missed
+    { id: 99, name: "Smart Plating", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+  ],
+
+  RECIPES: [
+
+    // Smelter recipes
+    {"id":0,"name":"Iron Ingot","building":"Smelter","time":2,"inputs":[{"item_id":0,"amount":1,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":28,"rate":30,"output":1}],"item":28},
+    {"id":1,"name":"Copper Ingot","building":"Smelter","time":2,"inputs":[{"item_id":1,"amount":1,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":29,"rate":30,"output":1}],"item":29},
+    {"id":2,"name":"Caterium Ingot","building":"Smelter","time":4,"inputs":[{"item_id":4,"amount":3,"rate":45}],"output":1,"isDefault":true,"outputs":[{"item_id":31,"rate":15,"output":1}],"item":31},
+
+    // Constructor recipes
+    {"id":3,"name":"Iron Plate","building":"Constructor","time":6,"inputs":[{"item_id":28,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":33,"rate":20,"output":2}],"item":33},
+    {"id":4,"name":"Iron Rod","building":"Constructor","time":4,"inputs":[{"item_id":28,"amount":1,"rate":15}],"output":1,"isDefault":true,"outputs":[{"item_id":34,"rate":15,"output":1}],"item":34},
+    {"id":5,"name":"Screw","building":"Constructor","time":6,"inputs":[{"item_id":34,"amount":1,"rate":10}],"output":4,"isDefault":true,"outputs":[{"item_id":35,"rate":40,"output":4}],"item":35},
+    {"id":6,"name":"Wire","building":"Constructor","time":4,"inputs":[{"item_id":29,"amount":1,"rate":15}],"output":2,"isDefault":true,"outputs":[{"item_id":40,"rate":30,"output":2}],"item":40},
+    {"id":7,"name":"Cable","building":"Constructor","time":2,"inputs":[{"item_id":40,"amount":2,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":41,"rate":30,"output":1}],"item":41},
+    {"id":8,"name":"Concrete","building":"Constructor","time":4,"inputs":[{"item_id":2,"amount":3,"rate":45}],"output":1,"isDefault":true,"outputs":[{"item_id":37,"rate":15,"output":1}],"item":37},
+    {"id":9,"name":"Copper Sheet","building":"Constructor","time":6,"inputs":[{"item_id":29,"amount":2,"rate":20}],"output":1,"isDefault":true,"outputs":[{"item_id":42,"rate":10,"output":1}],"item":42},
+    {"id":10,"name":"Steel Beam","building":"Constructor","time":4,"inputs":[{"item_id":30,"amount":4,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":38,"rate":15,"output":1}],"item":38},
+    {"id":11,"name":"Steel Pipe","building":"Constructor","time":6,"inputs":[{"item_id":30,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":39,"rate":20,"output":2}],"item":39},
+    {"id":12,"name":"Quickwire","building":"Constructor","time":5,"inputs":[{"item_id":31,"amount":1,"rate":12}],"output":5,"isDefault":true,"outputs":[{"item_id":45,"rate":60,"output":5}],"item":45},
+    {"id":13,"name":"Quartz Crystal","building":"Constructor","time":8,"inputs":[{"item_id":5,"amount":5,"rate":37.5}],"output":3,"isDefault":true,"outputs":[{"item_id":43,"rate":22.5,"output":3}],"item":43},
+    {"id":14,"name":"Silica","building":"Constructor","time":8,"inputs":[{"item_id":5,"amount":3,"rate":22.5}],"output":5,"isDefault":true,"outputs":[{"item_id":44,"rate":37.5,"output":5}],"item":44},
+    {"id":15,"name":"Aluminum Casing","building":"Constructor","time":2,"inputs":[{"item_id":32,"amount":3,"rate":90}],"output":2,"isDefault":true,"outputs":[{"item_id":46,"rate":60,"output":2}],"item":46},
+    {"id":16,"name":"Empty Canister","building":"Constructor","time":4,"inputs":[{"item_id":48,"amount":2,"rate":30}],"output":4,"isDefault":true,"outputs":[{"item_id":68,"rate":60,"output":4}],"item":68},
+
+    // Foundry recipes
+    {"id":17,"name":"Steel Ingot","building":"Foundry","time":4,"inputs":[{"item_id":0,"amount":3,"rate":45},{"item_id":3,"amount":3,"rate":45}],"output":3,"isDefault":true,"outputs":[{"item_id":30,"rate":45,"output":3}],"item":30},
+    {"id":18,"name":"Aluminum Ingot","building":"Foundry","time":4,"inputs":[{"item_id":52,"amount":6,"rate":90},{"item_id":44,"amount":5,"rate":75}],"output":4,"isDefault":true,"outputs":[{"item_id":32,"rate":60,"output":4}],"item":32},
+
+    // Assembler recipes
+    {"id":19,"name":"Reinforced Iron Plate","building":"Assembler","time":12,"inputs":[{"item_id":33,"amount":6,"rate":30},{"item_id":35,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":36,"rate":5,"output":1}],"item":36},
+    {"id":20,"name":"Modular Frame","building":"Assembler","time":60,"inputs":[{"item_id":36,"amount":3,"rate":3},{"item_id":34,"amount":12,"rate":12}],"output":2,"isDefault":true,"outputs":[{"item_id":53,"rate":2,"output":2}],"item":53},
+    {"id":21,"name":"Rotor","building":"Assembler","time":15,"inputs":[{"item_id":34,"amount":5,"rate":20},{"item_id":35,"amount":25,"rate":100}],"output":1,"isDefault":true,"outputs":[{"item_id":56,"rate":4,"output":1}],"item":56},
+    {"id":22,"name":"Stator","building":"Assembler","time":12,"inputs":[{"item_id":39,"amount":3,"rate":15},{"item_id":40,"amount":8,"rate":40}],"output":1,"isDefault":true,"outputs":[{"item_id":57,"rate":5,"output":1}],"item":57},
+    {"id":23,"name":"Motor","building":"Assembler","time":12,"inputs":[{"item_id":56,"amount":2,"rate":10},{"item_id":57,"amount":2,"rate":10}],"output":1,"isDefault":true,"outputs":[{"item_id":58,"rate":5,"output":1}],"item":58},
+    {"id":24,"name":"Circuit Board","building":"Assembler","time":8,"inputs":[{"item_id":42,"amount":2,"rate":15},{"item_id":48,"amount":4,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":59,"rate":7.5,"output":1}],"item":59},
+    {"id":25,"name":"AI Limiter","building":"Assembler","time":12,"inputs":[{"item_id":42,"amount":5,"rate":25},{"item_id":45,"amount":20,"rate":100}],"output":1,"isDefault":true,"outputs":[{"item_id":62,"rate":5,"output":1}],"item":62},
+    {"id":26,"name":"Encased Industrial Beam","building":"Assembler","time":10,"inputs":[{"item_id":38,"amount":3,"rate":18},{"item_id":37,"amount":6,"rate":36}],"output":1,"isDefault":true,"outputs":[{"item_id":54,"rate":6,"output":1}],"item":54},
+    {"id":27,"name":"Heat Sink","building":"Assembler","time":8,"inputs":[{"item_id":64,"amount":5,"rate":37.5},{"item_id":42,"amount":3,"rate":22.5}],"output":1,"isDefault":true,"outputs":[{"item_id":67,"rate":7.5,"output":1}],"item":67},
+    {"id":28,"name":"Alclad Aluminum Sheet","building":"Assembler","time":6,"inputs":[{"item_id":32,"amount":3,"rate":30},{"item_id":29,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":64,"rate":30,"output":3}],"item":64},
+    {"id":29,"name":"Electromagnetic Control Rod","building":"Assembler","time":30,"inputs":[{"item_id":57,"amount":3,"rate":6},{"item_id":62,"amount":2,"rate":4}],"output":2,"isDefault":true,"outputs":[{"item_id":63,"rate":4,"output":2}],"item":63},
+    {"id":30,"name":"Smart Plating","building":"Assembler","time":30,"inputs":[{"item_id":36,"amount":1,"rate":2},{"item_id":56,"amount":1,"rate":2}],"output":1,"isDefault":true,"outputs":[{"rate":2,"item_id":99,"output":1}]},
+    {"id":31,"name":"Versatile Framework","building":"Assembler","time":24,"inputs":[{"item_id":53,"amount":1,"rate":2.5},{"item_id":38,"amount":12,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":65,"rate":5,"output":2}],"item":65},
+    {"id":32,"name":"Automated Wiring","building":"Assembler","time":24,"inputs":[{"item_id":57,"amount":1,"rate":2.5},{"item_id":41,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":66,"rate":2.5,"output":1}],"item":66},
+    {"id":33,"name":"Black Powder","building":"Assembler","time":4,"inputs":[{"item_id":3,"amount":1,"rate":15},{"item_id":6,"amount":1,"rate":15}],"output":2,"isDefault":true,"outputs":[{"rate":30,"output":2}]},
+    {"id":34,"name":"Magnetic Field Generator","building":"Assembler","time":120,"inputs":[{"item_id":65,"amount":5,"rate":2.5},{"item_id":63,"amount":2,"rate":1}],"output":2,"isDefault":true,"outputs":[{"item_id":80,"rate":1,"output":2}],"item":80},
+
+    // Refinery recipes
+    {"id":35,"name":"Plastic","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":48,"rate":20,"output":2}],"item":48},
+    {"id":36,"name":"Rubber","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":49,"rate":20,"output":2}],"item":49},
+    {"id":37,"name":"Fuel","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":6,"rate":60}],"output":4,"isDefault":true,"outputs":[{"item_id":19,"rate":40,"output":4}],"item":19},
+    {"id":38,"name":"Petroleum Coke","building":"Refinery","time":6,"inputs":[{"item_id":18,"amount":4,"rate":40}],"output":12,"isDefault":true,"outputs":[{"item_id":47,"rate":120,"output":12}],"item":47},
+    {"id":39,"name":"Alumina Solution","building":"Refinery","time":6,"inputs":[{"item_id":7,"amount":12,"rate":120},{"item_id":10,"amount":18,"rate":180}],"output":12,"isDefault":true,"outputs":[{"item_id":22,"rate":120,"output":12}],"item":22},
+    {"id":40,"name":"Aluminum Scrap","building":"Refinery","time":1,"inputs":[{"item_id":22,"amount":4,"rate":240},{"item_id":3,"amount":2,"rate":120}],"output":6,"isDefault":true,"outputs":[{"item_id":52,"rate":360,"output":6}],"item":52},
+    {"id":41,"name":"Sulfuric Acid","building":"Refinery","time":6,"inputs":[{"item_id":6,"amount":5,"rate":50},{"item_id":10,"amount":5,"rate":50}],"output":5,"isDefault":true,"outputs":[{"item_id":23,"rate":50,"output":5}],"item":23},
+
+    // Manufacturer recipes
+    {"id":42,"name":"Heavy Modular Frame","building":"Manufacturer","time":30,"inputs":[{"item_id":53,"amount":5,"rate":10},{"item_id":39,"amount":15,"rate":30},{"item_id":54,"amount":5,"rate":10},{"item_id":35,"amount":90,"rate":180}],"output":1,"isDefault":true,"outputs":[{"item_id":55,"rate":2,"output":1}],"item":55},
+    {"id":43,"name":"Computer","building":"Manufacturer","time":24,"inputs":[{"item_id":59,"amount":10,"rate":25},{"item_id":41,"amount":9,"rate":22.5},{"item_id":48,"amount":18,"rate":45},{"item_id":35,"amount":52,"rate":130}],"output":1,"isDefault":true,"outputs":[{"item_id":60,"rate":2.5,"output":1}],"item":60},
+    {"id":44,"name":"Supercomputer","building":"Manufacturer","time":32,"inputs":[{"item_id":60,"amount":2,"rate":3.75},{"item_id":62,"amount":2,"rate":3.75},{"item_id":69,"amount":3,"rate":5.625},{"item_id":48,"amount":28,"rate":52.5}],"output":1,"isDefault":true,"outputs":[{"item_id":71,"rate":1.875,"output":1}],"item":71},
+    {"id":45,"name":"High-Speed Connector","building":"Manufacturer","time":16,"inputs":[{"item_id":45,"amount":56,"rate":210},{"item_id":41,"amount":10,"rate":37.5},{"item_id":59,"amount":1,"rate":3.75}],"output":1,"isDefault":true,"outputs":[{"item_id":69,"rate":3.75,"output":1}],"item":69},
+    {"id":46,"name":"Crystal Oscillator","building":"Manufacturer","time":120,"inputs":[{"item_id":43,"amount":36,"rate":18},{"item_id":41,"amount":28,"rate":14},{"item_id":36,"amount":5,"rate":2.5}],"output":2,"isDefault":true,"outputs":[{"item_id":70,"rate":1,"output":2}],"item":70},
+    {"id":47,"name":"Adaptive Control Unit","building":"Manufacturer","time":120,"inputs":[{"item_id":66,"amount":15,"rate":7.5},{"item_id":59,"amount":10,"rate":5},{"item_id":55,"amount":2,"rate":1},{"item_id":60,"amount":2,"rate":1}],"output":2,"isDefault":true,"outputs":[{"item_id":73,"rate":1,"output":2}],"item":73},
+    {"id":48,"name":"Modular Engine","building":"Manufacturer","time":60,"inputs":[{"item_id":58,"amount":2,"rate":2},{"item_id":49,"amount":15,"rate":15},{"amount":2,"rate":2}],"output":1,"isDefault":true,"outputs":[{"rate":1,"output":1}]},
+    {"id":49,"name":"Radio Control Unit","building":"Manufacturer","time":48,"inputs":[{"item_id":46,"amount":32,"rate":40},{"item_id":70,"amount":1,"rate":1.25},{"item_id":60,"amount":1,"rate":1.25}],"output":2,"isDefault":true,"outputs":[{"item_id":74,"rate":2.5,"output":2}],"item":74},
+    {"id":50,"name":"Turbo Motor","building":"Manufacturer","time":32,"inputs":[{"item_id":76,"amount":4,"rate":7.5},{"item_id":74,"amount":2,"rate":3.75},{"item_id":58,"amount":4,"rate":7.5},{"item_id":49,"amount":24,"rate":45}],"output":1,"isDefault":true,"outputs":[{"item_id":75,"rate":1.875,"output":1}],"item":75},
+    {"id":51,"name":"Gas Filter","building":"Manufacturer","time":8,"inputs":[{"item_id":3,"amount":5,"rate":37.5},{"item_id":49,"amount":2,"rate":15},{"item_id":98,"amount":2,"rate":15}],"output":1,"isDefault":true,"outputs":[{"item_id":77,"rate":7.5,"output":1}],"item":77},
+
+    // Blender recipes
+    {"id":52,"name":"Cooling System","building":"Blender","time":10,"inputs":[{"item_id":67,"amount":2,"rate":12},{"item_id":49,"amount":2,"rate":12},{"item_id":10,"amount":5,"rate":30},{"item_id":12,"amount":25,"rate":150}],"output":1,"isDefault":true,"outputs":[{"item_id":76,"rate":6,"output":1}],"item":76},
+    {"id":53,"name":"Fused Modular Frame","building":"Blender","time":40,"inputs":[{"item_id":55,"amount":1,"rate":1.5},{"item_id":46,"amount":50,"rate":75},{"item_id":12,"amount":25,"rate":37.5}],"output":1,"isDefault":true,"outputs":[{"item_id":78,"rate":1.5,"output":1}],"item":78},
+    {"id":54,"name":"Battery","building":"Blender","time":3,"inputs":[{"item_id":23,"amount":2.5,"rate":50},{"item_id":22,"amount":2,"rate":40},{"item_id":46,"amount":1,"rate":20}],"output":1,"isDefault":true,"outputs":[{"item_id":72,"rate":20,"output":1}],"item":72},
+    {"id":55,"name":"Encased Uranium Cell","building":"Blender","time":12,"inputs":[{"item_id":8,"amount":10,"rate":50},{"item_id":37,"amount":3,"rate":15},{"item_id":23,"amount":8,"rate":40}],"output":5,"isDefault":true,"outputs":[{"item_id":79,"rate":25,"output":5}],"item":79},
+
+    // Particle Accelerator recipes
+    {"id":56,"name":"Nuclear Pasta","building":"Particle Accelerator","time":120,"inputs":[{"item_id":88,"amount":200,"rate":100},{"item_id":89,"amount":1,"rate":0.5}],"output":1,"isDefault":true,"outputs":[{"item_id":81,"rate":0.5,"output":1}],"item":81},
+
+    // Quantumn Encoer recipes
+    {"id":57,"name":"AI Expansion Server","building":"Quantum Encoder","time":15,"inputs":[{"item_id":80,"amount":1,"rate":4},{"item_id":82,"amount":1,"rate":4},{"item_id":83,"amount":1,"rate":4},{"item_id":90,"amount":25,"rate":100}],"output":1,"isDefault":true,"outputs":[{"item_id":84,"rate":4,"output":1}],"item":84},
+    {"id":58,"name":"Alien Power Matrix","building":"Quantum Encoder","time":24,"inputs":[{"item_id":91,"amount":5,"rate":12.5},{"item_id":92,"amount":3,"rate":7.5},{"item_id":83,"amount":3,"rate":7.5},{"item_id":90,"amount":24,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":85,"rate":2.5,"output":1}],"item":85},
+    {"id":59,"name":"Ficsonium Fuel Rod","building":"Quantum Encoder","time":24,"inputs":[{"item_id":93,"amount":2,"rate":5},{"item_id":63,"amount":2,"rate":5},{"item_id":94,"amount":40,"rate":100},{"item_id":90,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":86,"rate":2.5,"output":1}],"item":86},
+    {"id":60,"name":"Neural-Quantum Processor","building":"Quantum Encoder","time":20,"inputs":[{"item_id":95,"amount":5,"rate":15},{"item_id":71,"amount":1,"rate":3},{"item_id":94,"amount":15,"rate":45},{"item_id":90,"amount":25,"rate":75}],"output":1,"isDefault":true,"outputs":[{"item_id":82,"rate":3,"output":1}],"item":82},
+    {"id":61,"name":"Superposition Oscillator","building":"Quantum Encoder","time":12,"inputs":[{"item_id":96,"amount":6,"rate":30},{"item_id":70,"amount":1,"rate":5},{"item_id":64,"amount":9,"rate":45},{"item_id":90,"amount":25,"rate":125}],"output":1,"isDefault":true,"outputs":[{"item_id":83,"rate":5,"output":1}],"item":83},
+    {"id":62,"name":"Synthetic Power Shard","building":"Quantum Encoder","time":12,"inputs":[{"item_id":95,"amount":2,"rate":10},{"item_id":96,"amount":2,"rate":10},{"item_id":43,"amount":12,"rate":60},{"item_id":90,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":87,"rate":5,"output":1}],"item":87},
+
+    // Alternate recipes
+    {"id":63,"name":"Alternate: Iron Wire","building":"Constructor","time":24,"inputs":[{"item_id":28,"amount":5,"rate":12.5}],"output":9,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":22.5,"output":9}],"item":40},
+    {"id":64,"name":"Alternate: Cast Screw","building":"Constructor","time":24,"inputs":[{"item_id":28,"amount":5,"rate":12.5}],"output":20,"isDefault":false,"replaces":"Screw","outputs":[{"item_id":35,"rate":50,"output":20}],"item":35},
+    {"id":65,"name":"Alternate: Steel Rod","building":"Constructor","time":5,"inputs":[{"item_id":30,"amount":1,"rate":12}],"output":4,"isDefault":false,"replaces":"Iron Rod","outputs":[{"item_id":34,"rate":48,"output":4}],"item":34},
+    {"id":66,"name":"Alternate: Aluminum Rod","building":"Constructor","time":8,"inputs":[{"item_id":32,"amount":1,"rate":7.5}],"output":7,"isDefault":false,"replaces":"Iron Rod","outputs":[{"item_id":34,"rate":52.5,"output":7}],"item":34},
+    {"id":67,"name":"Alternate: Caterium Wire","building":"Constructor","time":4,"inputs":[{"item_id":31,"amount":1,"rate":15}],"output":8,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":120,"output":8}],"item":40},
+    {"id":68,"name":"Alternate: Charcoal","building":"Constructor","time":4,"inputs":[{"item_id":14,"amount":1,"rate":15}],"output":10,"isDefault":false,"replaces":"Coal","outputs":[{"item_id":3,"rate":150,"output":10}],"item":3},
+    {"id":69,"name":"Alternate: Steel Canister","building":"Constructor","time":6,"inputs":[{"item_id":30,"amount":4,"rate":40}],"output":4,"isDefault":false,"replaces":"Empty Canister","outputs":[{"item_id":68,"rate":40,"output":4}],"item":68},
+    {"id":70,"name":"Alternate: Aluminum Beam","building":"Constructor","time":8,"inputs":[{"item_id":32,"amount":3,"rate":22.5}],"output":3,"isDefault":false,"replaces":"Steel Beam","outputs":[{"item_id":38,"rate":22.5,"output":3}],"item":38},
+    {"id":71,"name":"Alternate: Iron Pipe","building":"Constructor","time":12,"inputs":[{"item_id":28,"amount":20,"rate":100}],"output":5,"isDefault":false,"replaces":"Steel Pipe","outputs":[{"item_id":39,"rate":25,"output":5}],"item":39},
+    {"id":72,"name":"Alternate: Adhered Iron Plate","building":"Assembler","time":16,"inputs":[{"item_id":33,"amount":3,"rate":11.25},{"item_id":49,"amount":1,"rate":3.75}],"output":1,"isDefault":false,"replaces":"Reinforced Iron Plate","outputs":[{"item_id":36,"rate":3.75,"output":1}],"item":36},
+    {"id":73,"name":"Alternate: Bolted Frame","building":"Assembler","time":24,"inputs":[{"item_id":36,"amount":3,"rate":7.5},{"item_id":35,"amount":56,"rate":140}],"output":2,"isDefault":false,"replaces":"Modular Frame","outputs":[{"item_id":53,"rate":5,"output":2}],"item":53},
+    {"id":74,"name":"Alternate: Bolted Iron Plate","building":"Assembler","time":12,"inputs":[{"item_id":33,"amount":18,"rate":90},{"item_id":35,"amount":50,"rate":250}],"output":3,"isDefault":false,"replaces":"Reinforced Iron Plate","outputs":[{"item_id":36,"rate":15,"output":3}],"item":36},
+    {"id":75,"name":"Alternate: Cheap Silica","building":"Assembler","time":8,"inputs":[{"item_id":5,"amount":3,"rate":22.5},{"item_id":2,"amount":5,"rate":37.5}],"output":7,"isDefault":false,"replaces":"Silica","outputs":[{"item_id":44,"rate":52.5,"output":7}],"item":44},
+    {"id":76,"name":"Alternate: Coated Cable","building":"Assembler","time":8,"inputs":[{"item_id":40,"amount":5,"rate":37.5},{"item_id":18,"amount":2,"rate":15}],"output":9,"isDefault":false,"replaces":"Cable","outputs":[{"item_id":41,"rate":67.5,"output":9}],"item":41},
+    {"id":77,"name":"Alternate: Coated Iron Canister","building":"Assembler","time":4,"inputs":[{"item_id":33,"amount":2,"rate":30},{"item_id":42,"amount":1,"rate":15}],"output":4,"isDefault":false,"replaces":"Empty Canister","outputs":[{"item_id":68,"rate":60,"output":4}],"item":68},
+    {"id":78,"name":"Alternate: Coated Iron Plate","building":"Assembler","time":8,"inputs":[{"item_id":28,"amount":5,"rate":37.5},{"item_id":48,"amount":1,"rate":7.5}],"output":10,"isDefault":false,"replaces":"Iron Plate","outputs":[{"item_id":33,"rate":75,"output":10}],"item":33},
+    {"id":79,"name":"Alternate: Copper Rotor","building":"Assembler","time":16,"inputs":[{"item_id":42,"amount":6,"rate":22.5},{"item_id":35,"amount":52,"rate":195}],"output":3,"isDefault":false,"replaces":"Rotor","outputs":[{"item_id":56,"rate":11.25,"output":3}],"item":56},
+    {"id":80,"name":"Alternate: Electrode Circuit Board","building":"Assembler","time":12,"inputs":[{"item_id":49,"amount":4,"rate":20},{"item_id":47,"amount":8,"rate":40}],"output":1,"isDefault":false,"replaces":"Circuit Board","outputs":[{"item_id":59,"rate":5,"output":1}],"item":59},
+    {"id":81,"name":"Alternate: Electric Motor","building":"Assembler","time":16,"inputs":[{"item_id":63,"amount":1,"rate":3.75},{"item_id":56,"amount":2,"rate":7.5}],"output":2,"isDefault":false,"replaces":"Motor","outputs":[{"item_id":58,"rate":7.5,"output":2}],"item":58},
+    {"id":82,"name":"Alternate: Electromagnetic Connection Rod","building":"Assembler","time":15,"inputs":[{"item_id":57,"amount":2,"rate":8},{"item_id":69,"amount":1,"rate":4}],"output":2,"isDefault":false,"replaces":"Electromagnetic Control Rod","outputs":[{"item_id":63,"rate":8,"output":2}],"item":63},
+    {"id":83,"name":"Alternate: Encased Industrial Pipe","building":"Assembler","time":15,"inputs":[{"item_id":39,"amount":6,"rate":24},{"item_id":37,"amount":5,"rate":20}],"output":1,"isDefault":false,"replaces":"Encased Industrial Beam","outputs":[{"item_id":54,"rate":4,"output":1}],"item":54},
+    {"id":84,"name":"Alternate: Fine Black Powder","building":"Assembler","time":8,"inputs":[{"item_id":6,"amount":1,"rate":7.5},{"item_id":51,"amount":2,"rate":15}],"output":6,"isDefault":false,"replaces":"Black Powder","outputs":[{"rate":45,"output":6}]},
+    {"id":85,"name":"Alternate: Fine Concrete","building":"Assembler","time":12,"inputs":[{"item_id":44,"amount":3,"rate":15},{"item_id":2,"amount":12,"rate":60}],"output":10,"isDefault":false,"replaces":"Concrete","outputs":[{"item_id":37,"rate":50,"output":10}],"item":37},
+    {"id":86,"name":"Alternate: Fused Quickwire","building":"Assembler","time":8,"inputs":[{"item_id":31,"amount":1,"rate":7.5},{"item_id":29,"amount":5,"rate":37.5}],"output":12,"isDefault":false,"replaces":"Quickwire","outputs":[{"item_id":45,"rate":90,"output":12}],"item":45},
+    {"id":87,"name":"Alternate: Fused Wire","building":"Assembler","time":20,"inputs":[{"item_id":29,"amount":4,"rate":12},{"item_id":31,"amount":1,"rate":3}],"output":30,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":90,"output":30}],"item":40},
+    {"id":88,"name":"Alternate: Insulated Cable","building":"Assembler","time":12,"inputs":[{"item_id":40,"amount":9,"rate":45},{"item_id":49,"amount":6,"rate":30}],"output":20,"isDefault":false,"replaces":"Cable","outputs":[{"item_id":41,"rate":100,"output":20}],"item":41},
+    {"id":89,"name":"Alternate: Plastic AI Limiter","building":"Assembler","time":15,"inputs":[{"item_id":45,"amount":30,"rate":120},{"item_id":48,"amount":7,"rate":28}],"output":2,"isDefault":false,"replaces":"AI Limiter","outputs":[{"item_id":62,"rate":8,"output":2}],"item":62},
+    {"id":90,"name":"Alternate: Quickwire Cable","building":"Assembler","time":24,"inputs":[{"item_id":45,"amount":3,"rate":7.5},{"item_id":49,"amount":2,"rate":5}],"output":11,"isDefault":false,"replaces":"Cable","outputs":[{"item_id":41,"rate":27.5,"output":11}],"item":41},
+    {"id":91,"name":"Alternate: Quickwire Stator","building":"Assembler","time":15,"inputs":[{"item_id":39,"amount":4,"rate":16},{"item_id":45,"amount":15,"rate":60}],"output":2,"isDefault":false,"replaces":"Stator","outputs":[{"item_id":57,"rate":8,"output":2}],"item":57},
+    {"id":92,"name":"Alternate: Rubber Concrete","building":"Assembler","time":6,"inputs":[{"item_id":2,"amount":10,"rate":100},{"item_id":49,"amount":2,"rate":20}],"output":9,"isDefault":false,"replaces":"Concrete","outputs":[{"item_id":37,"rate":90,"output":9}],"item":37},
+    {"id":93,"name":"Alternate: Silicon Circuit Board","building":"Assembler","time":24,"inputs":[{"item_id":42,"amount":11,"rate":27.5},{"item_id":44,"amount":11,"rate":27.5}],"output":5,"isDefault":false,"replaces":"Circuit Board","outputs":[{"item_id":59,"rate":12.5,"output":5}],"item":59},
+    {"id":94,"name":"Alternate: Stitched Iron Plate","building":"Assembler","time":32,"inputs":[{"item_id":33,"amount":10,"rate":18.75},{"item_id":40,"amount":20,"rate":37.5}],"output":3,"isDefault":false,"replaces":"Reinforced Iron Plate","outputs":[{"item_id":36,"rate":5.625,"output":3}],"item":36},
+    {"id":95,"name":"Alternate: Steel Rotor","building":"Assembler","time":12,"inputs":[{"item_id":39,"amount":2,"rate":10},{"item_id":40,"amount":6,"rate":30}],"output":1,"isDefault":false,"replaces":"Rotor","outputs":[{"item_id":56,"rate":5,"output":1}],"item":56},
+    {"id":96,"name":"Alternate: Steeled Frame","building":"Assembler","time":60,"inputs":[{"item_id":36,"amount":2,"rate":2},{"item_id":39,"amount":10,"rate":10}],"output":3,"isDefault":false,"replaces":"Modular Frame","outputs":[{"item_id":53,"rate":3,"output":3}],"item":53},
+    {"id":97,"name":"Alternate: Alclad Casing","building":"Assembler","time":8,"inputs":[{"item_id":32,"amount":20,"rate":150},{"item_id":29,"amount":10,"rate":75}],"output":15,"isDefault":false,"replaces":"Aluminum Casing","outputs":[{"item_id":46,"rate":112.5,"output":15}],"item":46},
+    {"id":98,"name":"Alternate: Heat Exchanger","building":"Assembler","time":6,"inputs":[{"item_id":46,"amount":3,"rate":30},{"item_id":49,"amount":3,"rate":30}],"output":1,"isDefault":false,"replaces":"Heat Sink","outputs":[{"item_id":67,"rate":10,"output":1}],"item":67},
+    {"id":99,"name":"Alternate: Caterium Circuit Board","building":"Assembler","time":48,"inputs":[{"item_id":48,"amount":10,"rate":12.5},{"item_id":45,"amount":30,"rate":37.5}],"output":7,"isDefault":false,"replaces":"Circuit Board","outputs":[{"item_id":59,"rate":8.75,"output":7}],"item":59},
+    {"id":100,"name":"Alternate: Compacted Coal","building":"Assembler","time":12,"inputs":[{"item_id":3,"amount":5,"rate":25},{"item_id":6,"amount":5,"rate":25}],"output":5,"isDefault":false,"item":51,"replaces":"Compacted Coal","outputs":[{"item_id":51,"rate":25,"output":5}]},
+    {"id":101,"name":"Alternate: Automated Speed Wiring","building":"Manufacturer","time":32,"inputs":[{"item_id":57,"amount":2,"rate":3.75},{"item_id":40,"amount":40,"rate":75},{"item_id":69,"amount":1,"rate":1.875}],"output":4,"isDefault":false,"replaces":"Automated Wiring","outputs":[{"item_id":66,"rate":7.5,"output":4}],"item":66},
+    {"id":102,"name":"Alternate: Caterium Computer","building":"Manufacturer","time":16,"inputs":[{"item_id":59,"amount":4,"rate":15},{"item_id":45,"amount":14,"rate":52.5},{"item_id":49,"amount":6,"rate":22.5}],"output":1,"isDefault":false,"replaces":"Computer","outputs":[{"item_id":60,"rate":3.75,"output":1}],"item":60},
+    {"id":103,"name":"Alternate: Classic Battery","building":"Manufacturer","time":8,"inputs":[{"item_id":6,"amount":6,"rate":45},{"item_id":64,"amount":7,"rate":52.5},{"item_id":48,"amount":8,"rate":60},{"item_id":40,"amount":12,"rate":90}],"output":4,"isDefault":false,"replaces":"Battery","outputs":[{"item_id":72,"rate":30,"output":4}],"item":72},
+    {"id":104,"name":"Alternate: Crystal Computer","building":"Manufacturer","time":64,"inputs":[{"item_id":59,"amount":8,"rate":7.5},{"item_id":70,"amount":3,"rate":2.8125}],"output":3,"isDefault":false,"replaces":"Computer","outputs":[{"item_id":60,"rate":2.8125,"output":3}],"item":60},
+    {"id":105,"name":"Alternate: Flexible Framework","building":"Manufacturer","time":16,"inputs":[{"item_id":53,"amount":1,"rate":3.75},{"item_id":38,"amount":6,"rate":22.5},{"item_id":49,"amount":8,"rate":30}],"output":2,"isDefault":false,"replaces":"Versatile Framework","outputs":[{"item_id":65,"rate":7.5,"output":2}],"item":65},
+    {"id":106,"name":"Alternate: Heavy Encased Frame","building":"Manufacturer","time":64,"inputs":[{"item_id":53,"amount":8,"rate":7.5},{"item_id":54,"amount":10,"rate":9.375},{"item_id":39,"amount":36,"rate":33.75},{"item_id":37,"amount":22,"rate":20.625}],"output":3,"isDefault":false,"replaces":"Heavy Modular Frame","outputs":[{"item_id":55,"rate":2.8125,"output":3}],"item":55},
+    {"id":107,"name":"Alternate: Heavy Flexible Frame","building":"Manufacturer","time":16,"inputs":[{"item_id":53,"amount":5,"rate":18.75},{"item_id":54,"amount":3,"rate":11.25},{"item_id":49,"amount":20,"rate":75},{"item_id":35,"amount":104,"rate":390}],"output":1,"isDefault":false,"replaces":"Heavy Modular Frame","outputs":[{"item_id":55,"rate":3.75,"output":1}],"item":55},
+    {"id":108,"name":"Alternate: Infused Uranium Cell","building":"Manufacturer","time":12,"inputs":[{"item_id":8,"amount":5,"rate":25},{"item_id":44,"amount":3,"rate":15},{"item_id":6,"amount":5,"rate":25},{"item_id":45,"amount":15,"rate":75}],"output":4,"isDefault":false,"replaces":"Encased Uranium Cell","outputs":[{"item_id":79,"rate":20,"output":4}],"item":79},
+    {"id":109,"name":"Alternate: Insulated Crystal Oscillator","building":"Manufacturer","time":32,"inputs":[{"item_id":43,"amount":10,"rate":18.75},{"item_id":49,"amount":7,"rate":13.125},{"item_id":62,"amount":1,"rate":1.875}],"output":1,"isDefault":false,"replaces":"Crystal Oscillator","outputs":[{"item_id":70,"rate":1.875,"output":1}],"item":70},
+    {"id":110,"name":"Alternate: OC Supercomputer","building":"Manufacturer","time":20,"inputs":[{"item_id":74,"amount":2,"rate":6},{"item_id":76,"amount":2,"rate":6}],"output":1,"isDefault":false,"replaces":"Supercomputer","outputs":[{"item_id":71,"rate":3,"output":1}],"item":71},
+    {"id":111,"name":"Alternate: Radio Connection Unit","building":"Manufacturer","time":16,"inputs":[{"item_id":67,"amount":4,"rate":15},{"item_id":69,"amount":2,"rate":7.5},{"item_id":43,"amount":12,"rate":45}],"output":1,"isDefault":false,"replaces":"Radio Control Unit","outputs":[{"item_id":74,"rate":3.75,"output":1}],"item":74},
+    {"id":112,"name":"Alternate: Radio Control System","building":"Manufacturer","time":40,"inputs":[{"item_id":70,"amount":1,"rate":1.5},{"item_id":59,"amount":10,"rate":15},{"item_id":46,"amount":60,"rate":90},{"item_id":49,"amount":30,"rate":45}],"output":3,"isDefault":false,"replaces":"Radio Control Unit","outputs":[{"item_id":74,"rate":4.5,"output":3}],"item":74},
+    {"id":113,"name":"Alternate: Rigor Motor","building":"Manufacturer","time":48,"inputs":[{"item_id":56,"amount":3,"rate":3.75},{"item_id":57,"amount":3,"rate":3.75},{"item_id":70,"amount":1,"rate":1.25}],"output":6,"isDefault":false,"replaces":"Motor","outputs":[{"item_id":58,"rate":7.5,"output":6}],"item":58},
+    {"id":114,"name":"Alternate: Super-State Computer","building":"Manufacturer","time":25,"inputs":[{"item_id":60,"amount":3,"rate":7.199999999999999},{"item_id":63,"amount":1,"rate":2.4},{"item_id":72,"amount":10,"rate":24},{"item_id":40,"amount":25,"rate":60}],"output":1,"isDefault":false,"replaces":"Supercomputer","outputs":[{"item_id":71,"rate":2.4,"output":1}],"item":71},
+    {"id":115,"name":"Alternate: Turbo Electric Motor","building":"Manufacturer","time":64,"inputs":[{"item_id":58,"amount":7,"rate":6.5625},{"item_id":74,"amount":9,"rate":8.4375},{"item_id":63,"amount":5,"rate":4.6875},{"item_id":56,"amount":7,"rate":6.5625}],"output":3,"isDefault":false,"replaces":"Turbo Motor","outputs":[{"item_id":75,"rate":2.8125,"output":3}],"item":75},
+    {"id":116,"name":"Alternate: Plastic Smart Plating","building":"Manufacturer","time":24,"inputs":[{"item_id":36,"amount":1,"rate":2.5},{"item_id":56,"amount":1,"rate":2.5},{"item_id":48,"amount":3,"rate":7.5}],"output":2,"isDefault":false,"replaces":"Smart Plating","outputs":[{"rate":5,"output":2}]},
+    {"id":117,"name":"Alternate: Silicon High-Speed Connector","building":"Manufacturer","time":40,"inputs":[{"item_id":45,"amount":60,"rate":90},{"item_id":44,"amount":25,"rate":37.5},{"item_id":59,"amount":2,"rate":3}],"output":2,"isDefault":false,"replaces":"High-Speed Connector","outputs":[{"item_id":69,"rate":3,"output":2}],"item":69},
+    {"id":118,"name":"Alternate: Basic Iron Ingot","building":"Foundry","time":12,"inputs":[{"item_id":0,"amount":5,"rate":25},{"item_id":2,"amount":8,"rate":40}],"output":10,"isDefault":false,"replaces":"Iron Ingot","outputs":[{"item_id":28,"rate":50,"output":10}],"item":28},
+    {"id":119,"name":"Alternate: Coke Steel Ingot","building":"Foundry","time":12,"inputs":[{"item_id":0,"amount":15,"rate":75},{"item_id":47,"amount":15,"rate":75}],"output":20,"isDefault":false,"replaces":"Steel Ingot","outputs":[{"item_id":30,"rate":100,"output":20}],"item":30},
+    {"id":120,"name":"Alternate: Compacted Steel Ingot","building":"Foundry","time":24,"inputs":[{"item_id":0,"amount":2,"rate":5},{"item_id":51,"amount":1,"rate":2.5}],"output":4,"isDefault":false,"replaces":"Steel Ingot","outputs":[{"item_id":30,"rate":10,"output":4}],"item":30},
+    {"id":121,"name":"Alternate: Copper Alloy Ingot","building":"Foundry","time":6,"inputs":[{"item_id":1,"amount":5,"rate":50},{"item_id":0,"amount":5,"rate":50}],"output":10,"isDefault":false,"replaces":"Copper Ingot","outputs":[{"item_id":29,"rate":100,"output":10}],"item":29},
+    {"id":122,"name":"Alternate: Fused Quartz Crystal","building":"Foundry","time":20,"inputs":[{"item_id":5,"amount":25,"rate":75},{"item_id":3,"amount":12,"rate":36}],"output":18,"isDefault":false,"replaces":"Quartz Crystal","outputs":[{"item_id":43,"rate":54,"output":18}],"item":43},
+    {"id":123,"name":"Alternate: Iron Alloy Ingot","building":"Foundry","time":12,"inputs":[{"item_id":0,"amount":8,"rate":40},{"item_id":1,"amount":2,"rate":10}],"output":15,"isDefault":false,"replaces":"Iron Ingot","outputs":[{"item_id":28,"rate":75,"output":15}],"item":28},
+    {"id":124,"name":"Alternate: Molded Beam","building":"Foundry","time":12,"inputs":[{"item_id":30,"amount":24,"rate":120},{"item_id":37,"amount":16,"rate":80}],"output":9,"isDefault":false,"replaces":"Steel Beam","outputs":[{"item_id":38,"rate":45,"output":9}],"item":38},
+    {"id":125,"name":"Alternate: Molded Steel Pipe","building":"Foundry","time":6,"inputs":[{"item_id":30,"amount":5,"rate":50},{"item_id":37,"amount":3,"rate":30}],"output":5,"isDefault":false,"replaces":"Steel Pipe","outputs":[{"item_id":39,"rate":50,"output":5}],"item":39},
+    {"id":126,"name":"Alternate: Solid Steel Ingot","building":"Foundry","time":3,"inputs":[{"item_id":28,"amount":2,"rate":40},{"item_id":3,"amount":2,"rate":40}],"output":3,"isDefault":false,"replaces":"Steel Ingot","outputs":[{"item_id":30,"rate":60,"output":3}],"item":30},
+    {"id":127,"name":"Alternate: Steel Cast Plate","building":"Foundry","time":4,"inputs":[{"item_id":28,"amount":1,"rate":15},{"item_id":30,"amount":1,"rate":15}],"output":3,"isDefault":false,"replaces":"Iron Plate","outputs":[{"item_id":33,"rate":45,"output":3}],"item":33},
+    {"id":128,"name":"Alternate: Tempered Caterium Ingot","building":"Foundry","time":8,"inputs":[{"item_id":4,"amount":6,"rate":45},{"item_id":47,"amount":2,"rate":15}],"output":3,"isDefault":false,"replaces":"Caterium Ingot","outputs":[{"item_id":31,"rate":22.5,"output":3}],"item":31},
+    {"id":129,"name":"Alternate: Tempered Copper Ingot","building":"Foundry","time":12,"inputs":[{"item_id":1,"amount":5,"rate":25},{"item_id":47,"amount":8,"rate":40}],"output":12,"isDefault":false,"replaces":"Copper Ingot","outputs":[{"item_id":29,"rate":60,"output":12}],"item":29},
+    {"id":130,"name":"Alternate: Diluted Packaged Fuel","building":"Refinery","time":2,"inputs":[{"item_id":18,"amount":1,"rate":30},{"amount":2,"rate":60}],"output":2,"isDefault":false,"replaces":"Fuel","outputs":[{"item_id":19,"rate":60,"output":2}],"item":19},
+    {"id":131,"name":"Alternate: Electrode Aluminum Scrap","building":"Refinery","time":4,"inputs":[{"item_id":22,"amount":12,"rate":180},{"item_id":47,"amount":4,"rate":60}],"output":20,"isDefault":false,"replaces":"Aluminum Scrap","outputs":[{"item_id":52,"rate":300,"output":20}],"item":52},
+    {"id":132,"name":"Alternate: Heavy Oil Residue","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":4,"isDefault":false,"replaces":"Heavy Oil Residue","outputs":[{"item_id":18,"rate":40,"output":4}],"item":18},
+    {"id":133,"name":"Alternate: Leached Caterium Ingot","building":"Refinery","time":10,"inputs":[{"item_id":4,"amount":9,"rate":54},{"item_id":23,"amount":5,"rate":30}],"output":6,"isDefault":false,"replaces":"Caterium Ingot","outputs":[{"item_id":31,"rate":36,"output":6}],"item":31},
+    {"id":134,"name":"Alternate: Leached Copper Ingot","building":"Refinery","time":12,"inputs":[{"item_id":1,"amount":9,"rate":45},{"item_id":23,"amount":5,"rate":25}],"output":22,"isDefault":false,"replaces":"Copper Ingot","outputs":[{"item_id":29,"rate":110,"output":22}],"item":29},
+    {"id":135,"name":"Alternate: Leached Iron Ingot","building":"Refinery","time":6,"inputs":[{"item_id":0,"amount":5,"rate":50},{"item_id":23,"amount":1,"rate":10}],"output":10,"isDefault":false,"replaces":"Iron Ingot","outputs":[{"item_id":28,"rate":100,"output":10}],"item":28},
+    {"id":136,"name":"Alternate: Polymer Resin","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":6,"rate":60}],"output":13,"isDefault":false,"replaces":"Polymer Resin","outputs":[{"item_id":50,"rate":130,"output":13}],"item":50},
+    {"id":137,"name":"Alternate: Pure Caterium Ingot","building":"Refinery","time":5,"inputs":[{"item_id":4,"amount":2,"rate":24},{"item_id":10,"amount":2,"rate":24}],"output":1,"isDefault":false,"replaces":"Caterium Ingot","outputs":[{"item_id":31,"rate":12,"output":1}],"item":31},
+    {"id":138,"name":"Alternate: Pure Copper Ingot","building":"Refinery","time":24,"inputs":[{"item_id":1,"amount":6,"rate":15},{"item_id":10,"amount":4,"rate":10}],"output":15,"isDefault":false,"replaces":"Copper Ingot","outputs":[{"item_id":29,"rate":37.5,"output":15}],"item":29},
+    {"id":139,"name":"Alternate: Pure Iron Ingot","building":"Refinery","time":12,"inputs":[{"item_id":0,"amount":7,"rate":35},{"item_id":10,"amount":4,"rate":20}],"output":13,"isDefault":false,"replaces":"Iron Ingot","outputs":[{"item_id":28,"rate":65,"output":13}],"item":28},
+    {"id":140,"name":"Alternate: Pure Quartz Crystal","building":"Refinery","time":8,"inputs":[{"item_id":5,"amount":9,"rate":67.5},{"item_id":10,"amount":5,"rate":37.5}],"output":7,"isDefault":false,"replaces":"Quartz Crystal","outputs":[{"item_id":43,"rate":52.5,"output":7}],"item":43},
+    {"id":141,"name":"Alternate: Recycled Plastic","building":"Refinery","time":12,"inputs":[{"item_id":49,"amount":6,"rate":30},{"item_id":19,"amount":6,"rate":30}],"output":12,"isDefault":false,"replaces":"Plastic","outputs":[{"item_id":48,"rate":60,"output":12}],"item":48},
+    {"id":142,"name":"Alternate: Recycled Rubber","building":"Refinery","time":12,"inputs":[{"item_id":48,"amount":6,"rate":30},{"item_id":19,"amount":6,"rate":30}],"output":12,"isDefault":false,"replaces":"Rubber","outputs":[{"item_id":49,"rate":60,"output":12}],"item":49},
+    {"id":143,"name":"Alternate: Steamed Copper Sheet","building":"Refinery","time":8,"inputs":[{"item_id":29,"amount":3,"rate":22.5},{"item_id":10,"amount":3,"rate":22.5}],"output":3,"isDefault":false,"replaces":"Copper Sheet","outputs":[{"item_id":42,"rate":22.5,"output":3}],"item":42},
+    {"id":144,"name":"Alternate: Turbo Heavy Fuel","building":"Refinery","time":8,"inputs":[{"item_id":18,"amount":5,"rate":37.5},{"item_id":51,"amount":4,"rate":30}],"output":4,"isDefault":false,"replaces":"Compacted Coal","outputs":[{"item_id":51,"rate":30,"output":4}],"item":51},
+    {"id":145,"name":"Alternate: Wet Concrete","building":"Refinery","time":3,"inputs":[{"item_id":2,"amount":6,"rate":120},{"item_id":10,"amount":5,"rate":100}],"output":4,"isDefault":false,"replaces":"Concrete","outputs":[{"item_id":37,"rate":80,"output":4}],"item":37},
+    {"id":146,"name":"Alternate: Polyester Fabric","building":"Refinery","time":2,"inputs":[{"item_id":50,"amount":1,"rate":30},{"item_id":10,"amount":1,"rate":30}],"output":1,"isDefault":false,"replaces":"Fabric","outputs":[{"item_id":98,"rate":30,"output":1}],"item":98},
+    {"id":147,"name":"Alternate: Pure Aluminum Ingot","building":"Smelter","time":2,"inputs":[{"item_id":52,"amount":2,"rate":60}],"output":1,"isDefault":false,"replaces":"Aluminum Ingot","outputs":[{"item_id":32,"rate":30,"output":1}],"item":32},
+    {"id":148,"name":"Alternate: Cooling Device","building":"Blender","time":24,"inputs":[{"item_id":67,"amount":4,"rate":10},{"item_id":58,"amount":1,"rate":2.5},{"item_id":12,"amount":24,"rate":60}],"output":2,"isDefault":false,"replaces":"Cooling System","outputs":[{"item_id":76,"rate":5,"output":2}],"item":76},
+    {"id":149,"name":"Alternate: Diluted Fuel","building":"Blender","time":6,"inputs":[{"item_id":18,"amount":5,"rate":50},{"item_id":10,"amount":10,"rate":100}],"output":10,"isDefault":false,"replaces":"Fuel","outputs":[{"item_id":19,"rate":100,"output":10}],"item":19},
+    {"id":150,"name":"Alternate: Distilled Silica","building":"Blender","time":6,"inputs":[{"item_id":25,"amount":12,"rate":120},{"item_id":2,"amount":5,"rate":50},{"item_id":10,"amount":10,"rate":100}],"output":27,"isDefault":false,"replaces":"Silica","outputs":[{"item_id":44,"rate":270,"output":27}],"item":44},
+    {"id":151,"name":"Alternate: Heat-Fused Frame","building":"Blender","time":20,"inputs":[{"item_id":55,"amount":1,"rate":3},{"item_id":32,"amount":50,"rate":150},{"item_id":24,"amount":8,"rate":24},{"item_id":19,"amount":10,"rate":30}],"output":1,"isDefault":false,"replaces":"Fused Modular Frame","outputs":[{"item_id":78,"rate":3,"output":1}],"item":78},
+    {"id":152,"name":"Alternate: Instant Scrap","building":"Blender","time":6,"inputs":[{"item_id":7,"amount":15,"rate":150},{"item_id":3,"amount":10,"rate":100},{"item_id":23,"amount":5,"rate":50},{"item_id":10,"amount":6,"rate":60}],"output":30,"isDefault":false,"replaces":"Aluminum Scrap","outputs":[{"item_id":52,"rate":300,"output":30}],"item":52},
+    {"id":153,"name":"Alternate: Sloppy Alumina","building":"Blender","time":3,"inputs":[{"item_id":7,"amount":10,"rate":200},{"item_id":10,"amount":10,"rate":200}],"output":12,"isDefault":false,"replaces":"Alumina Solution","outputs":[{"item_id":22,"rate":240,"output":12}],"item":22},
+    {"id":154,"name":"Alternate: Turbo Blend Fuel","building":"Blender","time":8,"inputs":[{"item_id":19,"amount":2,"rate":15},{"item_id":18,"amount":4,"rate":30},{"item_id":6,"amount":3,"rate":22.5},{"item_id":47,"amount":3,"rate":22.5}],"output":6,"isDefault":false,"replaces":"Turbofuel","outputs":[{"item_id":21,"rate":45,"output":6}],"item":21},
+  ],
+};
+
+CONSTS.NAME2ITEM_ID = CONSTS.ITEMS.reduce( (acc,val) => {
+  acc[val.name] = val.id;
+  return acc;
+}, {} );
+
+CONSTS.NAME2ITEM = CONSTS.ITEMS.reduce( (acc,val) => {
+  acc[val.name] = val;
+  return acc;
+}, {} );
+
+
+// Explicit list of fluid items
+CONSTS.FLUID_ITEMS = CONSTS.ITEMS.filter( it => it.isFluid );
+
+// Raw resources (things that come from miners/extractors)
+CONSTS.RAW_RESOURCES = CONSTS.ITEMS.filter( it => it.isRawResource );
+
+// Raw resources (things that come from miners/extractors)
+CONSTS.FUELS = CONSTS.ITEMS.filter( it => it.isFuel );
+
+// All recipes with their production rates (array format)
+CONSTS.DEFAULT_RECIPES = CONSTS.RECIPES.filter( r => r.isDefault );
+CONSTS.DEF2RECIPE = CONSTS.DEFAULT_RECIPES.reduce( (acc,val) => {
+  acc[val.name] = val;
+  return acc;
+}, {});
+
+CONSTS.BUILDING2IDS = CONSTS.BUILDINGS.reduce( (acc,val) => {
+  acc[val.name] = val.id;
+  return acc;
+}, {});
+
+CONSTS.BUILDING2RECIPES = CONSTS.RECIPES.reduce( (acc,val) => {
+  const b = val.building;
+  if (! acc[b] ) {
+    acc[b] = [];
+  }
+  acc[b].push( val );
+  return acc;
+}, {} );
+
+const ITEMS = CONSTS.ITEMS;
+
+const setupProdConf = (line,world) => {
+  line.tiers = [{}];
+
+  const tiers = line.tiers;
+
+  const needed = {};
+  
+  const addNeeded = (item,recipe,rate_adjust) => {
+    let node = needed[item.id];
+    let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.id )[0].rate : item.name == 'Water' ? 120 : 60);
+    // if (!recipe) { console.log( ` --> ${rate_adjust} * 60` ) }
+    //      console.log( `adding node ${item.name} (${item.id}) @ ${itemRate}` );
+
+    if (node) {
+      node.rate = node.rate + itemRate;
+      //        console.log( `    rate now ${node.rate}` );
+    } else {
+      node = needed[item.id]
+        = { item: item,
+            rate: itemRate,
+            tier_idx: 0,
+            supplies_nodes: {},
+            supplied_by_nodes: {},
+          };
+    }
+
+    if (recipe) {
+
+      node.recipe = recipe;
+
+      //        console.log(`need ${recipe.name} at ${rate_adjust*100}%`);
+      recipe.inputs.forEach( inp => {
+        const inp_item = ITEMS[inp.item_id];
+        const inp_recipe = CONSTS.DEF2RECIPE[inp_item.name];
+        const rate = rate_adjust * inp.rate;
+        if (inp_recipe) {
+          const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
+          const inp_rate_adjust = rate / inp_recip_output_rate;
+          addNeeded(inp_item, inp_recipe, inp_rate_adjust);
+        } else {
+          const extract_rate_adj = rate / (inp_item.name == 'Water' ? 120 : 60);
+          addNeeded(inp_item, null, extract_rate_adj);
+        }
+      });
+    }
+  };
+
+  line.targetItems.forEach( targ => {
+    const targItem = ITEMS[targ.item_id];
+    const targRate = targ.rate;
+    const recipe = CONSTS.DEF2RECIPE[targItem.name];
+    const inp_output_rate = recipe.outputs.filter( op => op.item_id == targ.item_id )[0].rate;
+    const rate_adjust = targ.rate / inp_output_rate;
+    addNeeded( targItem, recipe, rate_adjust );
+  });
+
+  Object.values( needed ).forEach( node => {
+    const recipe = node.recipe;
+    const item = node.item;
+
+    if (recipe) {
+      const recipe_output_rate = recipe.outputs.filter( op => op.item_id == item.id )[0].rate;
+      node.machines = Math.ceil( node.rate / recipe_output_rate );
+      node.clocking =  node.rate / (node.machines * recipe_output_rate);
+      recipe.inputs.forEach( inp => {
+        const inp_node = needed[inp.item_id];
+        node.supplied_by_nodes[inp_node.item.id] = inp_node;
+        inp_node.supplies_nodes[node.item.id] = node;
+      } );
+
+    } else if(node.item.is_ore) {
+      // TODO: node purity
+      const miner_output_rate = 60;
+      node.machines = Math.ceil( node.rate / miner_output_rate );
+      node.clocking = node.rate / (node.machines * miner_output_rate);
+    } else if(node.item.name == "Water") {
+      // TODO: fill in, user can choose between pumped or fracked water. assume water for now
+      const extractor_output_rate = 120;
+      node.machines = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.machines * node.rate / extractor_output_rate;
+      
+    } else if(node.item.name == "Nitrogen") {
+      // TODO: node purity
+      const extractor_output_rate = 60;
+      node.machines = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.machines * node.rate / extractor_output_rate;
+    } else if(node.item.name == "Crude Oil") {
+      // TODO: node purity
+      const extractor_output_rate = 60;
+      node.machines = Math.ceil( node.rate / extractor_output_rate );
+      node.clocking = node.machines * node.rate / extractor_output_rate;
+    }
+  } );
+
+  const updateTier = (item_id, tier_idx) => {
+    let tier = tiers[tier_idx];
+    if (!tier) {
+      tier = tiers[tier_idx] = {};
+    }
+    const node = needed[item_id];
+    console.log( `checking ${ITEMS[item_id].name} ${tier_idx} > ${node.tier_idx}` );
+    if (tier_idx >= node.tier_idx) {
+      console.log( `removing ${ITEMS[item_id].name} FROM tier ${node.tier_idx}` );
+      delete tiers[node.tier_idx][item_id];
+
+      node.tier_idx = tier_idx;
+      tier[item_id] = node;
+      node.tier = tier;
+
+      console.log( `adding ${ITEMS[item_id].name} TO tier ${tier_idx}` );
+    }
+    Object.keys( node.supplied_by_nodes ).forEach( iid => updateTier(iid,tier_idx+1) );
+  };
+
+  line.targetItems.forEach( targ => {
+    updateTier( targ.item_id, 0 );
+  });
+
+  //    console.log(tiers);
+  console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ));
+
+  return line;
+};
+
+
+module.exports = {
+  CONSTS,
+  setupProdConf,
+};
+
+// ----------------------------------------------------------------------
+
+
+//const root = ReactDOM.createRoot(document.getElementById('root'));
+//root.render(<SatisfactoryCalculator />);
+
+// ----------------------------------------------------------------------
+
+/*
+let name2id = ITEMS.reduce( (acc,val) => {
+ acc[val.name] = val.id;
+ return acc;
+}, {} );
+//console.log(name2id);
+
+let recipes = CONSTS.RECIPES.map( r => {
+  const out = r.isDefault ? name2id[r.name] : name2id[r.replaces];
+  r.outputs = [
+    { item: out,
+      rate: r.output * (60/r.time),
+      output: r.output
+    }
+  ];
+  r.inputs = r.inputs.map( ri => {
+    return {
+      item_id: CONSTS.NAME2ITEM_ID[ri.item],
+      amount: ri.amount,
+      rate: ri.amount * (60/r.time),
+    }
+  } );
+  r.item = out;
+
+  return r;
+});
+
+recipes.map( it => {
+//  console.log( JSON.stringify(it) + ',' );
+} );
+*/
