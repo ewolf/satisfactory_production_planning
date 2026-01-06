@@ -13,7 +13,7 @@ function SatisfactoryCalculator() {
     name: 'Production Line 1',
     targetItems: [{ item_id: CONSTS.NAME2ITEM_ID['Smart Plating'], rate: 2 }],
     isExpanded: true,
-    builtProdConfs: {} // Track which production configurations have been built
+    builtProdConfBuildings: {} // Track how many buildings are built per production configuration
   };
 
   const DEFAULT_WORLD = {
@@ -147,7 +147,7 @@ function SatisfactoryCalculator() {
           key: `${building}|${node.item.name}|${tierIdx}`,
           building: building,
           item: node.item.name,
-          intCount: node.building_count,
+          building_count: node.building_count,
           rate: node.rate,
           purity: 'Normal',
           consumers: []
@@ -213,7 +213,19 @@ function SatisfactoryCalculator() {
 
   // Save state to localStorage
   const saveToLocalStorage = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(world));
+    // Don't save calculated data (tiers, results) - only save configuration
+    const stateToSave = {
+      ...world,
+      productionLines: world.productionLines.map(line => ({
+        id: line.id,
+        name: line.name,
+        targetItems: line.targetItems,
+        isExpanded: line.isExpanded,
+        builtProdConfBuildings: line.builtProdConfBuildings || {}
+        // Exclude tiers and results - they will be recalculated
+      }))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
   };
 
   // Auto-save to localStorage whenever world state changes
@@ -231,8 +243,15 @@ function SatisfactoryCalculator() {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const world = JSON.parse(saved);
-        setWorld(world);
+        const loadedWorld = JSON.parse(saved);
+        // Ensure builtProdConfBuildings exists for all production lines
+        if (loadedWorld.productionLines) {
+          loadedWorld.productionLines = loadedWorld.productionLines.map(line => ({
+            ...line,
+            builtProdConfBuildings: line.builtProdConfBuildings || {}
+          }));
+        }
+        setWorld(loadedWorld);
         return true;
       }
     } catch (error) {
@@ -243,7 +262,18 @@ function SatisfactoryCalculator() {
 
   // Export data to JSON file
   const exportToFile = () => {
-    const dataStr = JSON.stringify(world,null,2);
+    // Export only configuration, not calculated data
+    const dataToExport = {
+      ...world,
+      productionLines: world.productionLines.map(line => ({
+        id: line.id,
+        name: line.name,
+        targetItems: line.targetItems,
+        isExpanded: line.isExpanded,
+        builtProdConfBuildings: line.builtProdConfBuildings || {}
+      }))
+    };
+    const dataStr = JSON.stringify(dataToExport, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -261,9 +291,16 @@ function SatisfactoryCalculator() {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const world = JSON.parse(e.target.result);
-        if (world) {
-          setWorld(world);
+        const importedWorld = JSON.parse(e.target.result);
+        if (importedWorld) {
+          // Ensure builtProdConfBuildings exists for all production lines
+          if (importedWorld.productionLines) {
+            importedWorld.productionLines = importedWorld.productionLines.map(line => ({
+              ...line,
+              builtProdConfBuildings: line.builtProdConfBuildings || {}
+            }));
+          }
+          setWorld(importedWorld);
         }
       } catch (error) {
         console.error('Error importing file:', error);
@@ -292,7 +329,7 @@ function SatisfactoryCalculator() {
       name: `Production Line ${world.productionLines.length + 1}`,
       targetItems: [{ item_id: CONSTS.NAME2ITEM_ID['Iron Plate'], rate: 10 }],
       isExpanded: true,
-      builtProdConfs: {},
+      builtProdConfBuildings: {},
     };
     setWorld({
       ...world,
@@ -468,17 +505,18 @@ function SatisfactoryCalculator() {
     console.log(`Shards changed for ${key} to ${shards} in line ${lineId}`);
   };
 
-  // Handler for toggling built status of production configurations
-  const toggleProdConfBuilt = (lineId, key) => {
+  // Handler for updating built building count of production configurations
+  const updateProdConfBuildings = (lineId, key, count) => {
+    const numCount = parseInt(count) || 0;
     setWorld({
       ...world,
       productionLines: world.productionLines.map(l =>
         l.id === lineId
           ? {
               ...l,
-              builtProdConfs: {
-                ...l.builtProdConfs,
-                [key]: !l.builtProdConfs[key]
+              builtProdConfBuildings: {
+                ...l.builtProdConfBuildings,
+                [key]: numCount
               }
             }
           : l
@@ -524,7 +562,7 @@ function SatisfactoryCalculator() {
 
   // Helper function to check if all dependencies for a target item are built
   const checkTargetDependenciesBuilt = (line, targetItemId) => {
-    if (!line.tiers || !line.results || !line.builtProdConfs) return false;
+    if (!line.tiers || !line.results || !line.builtProdConfBuildings) return false;
 
     const targetItemName = CONSTS.ITEMS[targetItemId].name;
 
@@ -573,7 +611,12 @@ function SatisfactoryCalculator() {
 
     // Check if all required prodconfs are built
     for (const key of requiredKeys) {
-      if (!line.builtProdConfs[key]) {
+      // Get the required building count from results
+      const buildingEntry = line.results.buildings.find(b => b.key === key);
+      const requiredCount = buildingEntry ? buildingEntry.building_count : 1;
+      const builtCount = line.builtProdConfBuildings[key] || 0;
+
+      if (builtCount < requiredCount) {
         return false;
       }
     }
@@ -1557,7 +1600,7 @@ function SatisfactoryCalculator() {
                                })
                                .map((entry) => {
                                  const key = entry.key;
-                                 const maxShards = entry.intCount * 3;
+                                 const maxShards = entry.building_count * 3;
 
                                  // Get recipe for this item to show inputs
                                  const recipe = RECIPES[entry.item];
@@ -1576,18 +1619,19 @@ function SatisfactoryCalculator() {
                                  } else if (entry.underclocking) {
                                    const clockSpeed = entry.underclocking / 100;
                                    const actualPower = basePower * Math.pow(clockSpeed, 1.321928);
-                                   totalPower = actualPower * entry.intCount;
+                                   totalPower = actualPower * entry.building_count;
                                  } else {
-                                   totalPower = basePower * entry.intCount;
+                                   totalPower = basePower * entry.building_count;
                                  }
 
                                  // Check if this item is already a production target
                                  const isTarget = line.targetItems.some(t => CONSTS.ITEMS[t.item_id].name === entry.item);
 
-                                 // Check if this prodconf is marked as built
-                                 const isBuilt = line.builtProdConfs && line.builtProdConfs[key];
+                                 // Check if this prodconf has enough buildings built
+                                 const builtCount = line.builtProdConfBuildings && line.builtProdConfBuildings[key] || 0;
+                                 const isBuilt = builtCount >= entry.building_count;
 
-                                 // Apply green outline if built
+                                 // Apply green outline if enough buildings are built
                                  const borderClass = isBuilt ? 'border-2 border-green-500' : 'border border-gray-600';
 
                                  return (
@@ -1604,14 +1648,16 @@ function SatisfactoryCalculator() {
                                          </div>
                                        </div>
                                        <div className="flex items-center gap-2 ml-2">
-                                         <label className="flex items-center gap-1 cursor-pointer">
+                                         <label className="flex items-center gap-1">
+                                           <span className="text-xs text-gray-400">Built:</span>
                                            <input
-                                             type="checkbox"
-                                             checked={isBuilt || false}
-                                             onChange={() => toggleProdConfBuilt(line.id, key)}
-                                             className="w-4 h-4 cursor-pointer"
+                                             type="number"
+                                             min="0"
+                                             value={builtCount}
+                                             onChange={(e) => updateProdConfBuildings(line.id, key, e.target.value)}
+                                             className="w-16 bg-gray-600 text-white text-sm rounded px-2 py-1 border border-gray-500 focus:border-green-500 focus:outline-none"
                                            />
-                                           <span className="text-xs text-gray-400">Built</span>
+                                           <span className="text-xs text-gray-400">/ {entry.building_count}</span>
                                          </label>
                                          {!isTarget && (
                                            <button
@@ -1663,7 +1709,7 @@ function SatisfactoryCalculator() {
 
                                      <div className="flex items-baseline justify-between mb-2">
                                        <div className="text-2xl font-bold text-white">
-                                         {entry.intCount}
+                                         {entry.building_count}
                                        </div>
                                        <div className="text-sm text-gray-400">
                                          {entry.inputConstrained && entry.requestedRate ? (
@@ -1759,7 +1805,7 @@ function SatisfactoryCalculator() {
                                            <div key={input.item_id} className={`text-xs ${statusColor} flex items-start gap-1`}>
                                              <span className="flex-shrink-0">{statusIcon}</span>
                                              <span className="flex-1">
-                                               {input.name}: {inputPerMinute.toFixed(2)}/min × {entry.intCount} = {totalInputRate.toFixed(2)}/min{statusText}
+                                               {input.name}: {inputPerMinute.toFixed(2)}/min × {entry.building_count} = {totalInputRate.toFixed(2)}/min{statusText}
                                              </span>
                                            </div>
                                          );
