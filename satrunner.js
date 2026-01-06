@@ -365,6 +365,386 @@ function SatisfactoryCalculator() {
     console.log(`Shards changed for ${key} to ${shards} in line ${lineId}`);
   };
 
+  // ========================================
+  // SUBWAY MAP VISUALIZATION - UTILITY FUNCTIONS
+  // ========================================
+
+  const LAYOUT_CONSTANTS = {
+    NODE_WIDTH: 180,
+    NODE_HEIGHT: 120,
+    NODE_SPACING: 40,
+    TIER_SPACING: 200,
+    TOP_MARGIN: 50,
+    SIDE_MARGIN: 100,
+  };
+
+  // Predefined color palette for common items
+  const ITEM_COLORS = {
+    'Iron Ore': '#f97316',
+    'Copper Ore': '#ef4444',
+    'Coal': '#171717',
+    'Limestone': '#d4d4d4',
+    'Iron Ingot': '#fb923c',
+    'Copper Ingot': '#f87171',
+    'Water': '#06b6d4',
+    'Crude Oil': '#1e3a8a',
+  };
+
+  function getItemColor(itemName) {
+    if (ITEM_COLORS[itemName]) return ITEM_COLORS[itemName];
+
+    // Hash-based color generation for other items
+    let hash = 0;
+    for (let i = 0; i < itemName.length; i++) {
+      hash = itemName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+
+    const hue = Math.abs(hash % 360);
+    const saturation = 60 + (Math.abs(hash) % 20);
+    const lightness = 50 + (Math.abs(hash >> 8) % 15);
+
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  }
+
+  function generateBezierPath(x1, y1, x2, y2) {
+    const controlOffset = Math.abs(y2 - y1) / 2;
+    const cx1 = x1;
+    const cy1 = y1 - controlOffset;  // Reversed for bottom-to-top flow
+    const cx2 = x2;
+    const cy2 = y2 + controlOffset;  // Reversed for bottom-to-top flow
+
+    return `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
+  }
+
+  function calculatePorts(nodePositions, tiers) {
+    const portData = new Map();
+    const { NODE_WIDTH, NODE_HEIGHT } = LAYOUT_CONSTANTS;
+
+    nodePositions.forEach(nodePos => {
+      const { itemId, node, x, y } = nodePos;
+
+      // Count connections
+      const inputCount = Object.keys(node.supplied_by_nodes || {}).length;
+      const outputCount = Object.keys(node.supplies_nodes || {}).length;
+
+      // Calculate input port positions (bottom of node)
+      const inputPorts = [];
+      const inputSpacing = inputCount > 1 ?
+        (NODE_WIDTH - 40) / (inputCount - 1) : 0;
+      for (let i = 0; i < inputCount; i++) {
+        inputPorts.push({
+          x: x + 20 + i * inputSpacing,
+          y: y + NODE_HEIGHT,
+          itemId: Object.keys(node.supplied_by_nodes)[i]
+        });
+      }
+
+      // Calculate output port positions (top of node)
+      const outputPorts = [];
+      const outputSpacing = outputCount > 1 ?
+        (NODE_WIDTH - 40) / (outputCount - 1) : 0;
+      for (let i = 0; i < outputCount; i++) {
+        outputPorts.push({
+          x: x + 20 + i * outputSpacing,
+          y: y,
+          itemId: Object.keys(node.supplies_nodes)[i]
+        });
+      }
+
+      portData.set(itemId, { inputPorts, outputPorts });
+    });
+
+    return portData;
+  }
+
+  function generateConnections(portData, tiers, beltTier, pipeTier) {
+    const connections = [];
+
+    // Iterate through all tiers to find connections
+    tiers.forEach((tier, tierIdx) => {
+      Object.entries(tier).forEach(([itemId, node]) => {
+        // For each node that supplies this one
+        Object.keys(node.supplied_by_nodes || {}).forEach(supplierId => {
+          const supplierPorts = portData.get(supplierId);
+          const consumerPorts = portData.get(itemId);
+
+          if (!supplierPorts || !consumerPorts) return;
+
+          // Find matching ports
+          const outputPort = supplierPorts.outputPorts.find(p => p.itemId === itemId);
+          const inputPort = consumerPorts.inputPorts.find(p => p.itemId === supplierId);
+
+          if (!outputPort || !inputPort) return;
+
+          // Generate Bezier path
+          const path = generateBezierPath(
+            outputPort.x, outputPort.y,
+            inputPort.x, inputPort.y
+          );
+
+          // Calculate belt/pipe count
+          const capacity = node.item.is_fluid ? pipeTier : beltTier;
+          const beltCount = Math.ceil(node.rate / capacity);
+
+          connections.push({
+            path,
+            color: getItemColor(node.item.name),
+            isFluid: node.item.is_fluid,
+            rate: node.rate,
+            itemName: node.item.name,
+            beltCount,
+            capacity
+          });
+        });
+      });
+    });
+
+    return connections;
+  }
+
+  function calculateLayout(tiers, beltTier, pipeTier) {
+    const { NODE_WIDTH, NODE_HEIGHT, NODE_SPACING, TIER_SPACING, TOP_MARGIN, SIDE_MARGIN } = LAYOUT_CONSTANTS;
+
+    // 1. Calculate Y positions (top to bottom - tier 0 at top, resources at bottom)
+    const tierYPositions = tiers.map((tier, idx) => {
+      return TOP_MARGIN + idx * TIER_SPACING;
+    });
+
+    // 2. Calculate X positions (evenly space nodes in each tier)
+    const nodePositions = [];
+    tiers.forEach((tier, tierIdx) => {
+      const tierNodes = Object.entries(tier);
+      const tierWidth = (tierNodes.length * NODE_WIDTH) +
+                        ((tierNodes.length - 1) * NODE_SPACING);
+
+      tierNodes.forEach(([itemId, node], nodeIdx) => {
+        const x = SIDE_MARGIN + nodeIdx * (NODE_WIDTH + NODE_SPACING);
+        const y = tierYPositions[tierIdx];
+
+        nodePositions.push({
+          itemId,
+          node,
+          x,
+          y,
+          tierIdx
+        });
+      });
+    });
+
+    // 3. Calculate port positions
+    const portData = calculatePorts(nodePositions, tiers);
+
+    // 4. Generate connection paths
+    const connections = generateConnections(portData, tiers, beltTier, pipeTier);
+
+    return {
+      nodes: nodePositions,
+      connections,
+      width: Math.max(...nodePositions.map(n => n.x)) + NODE_WIDTH + SIDE_MARGIN,
+      height: TOP_MARGIN + tiers.length * TIER_SPACING
+    };
+  }
+
+  // ========================================
+  // SUBWAY MAP VISUALIZATION - REACT COMPONENTS
+  // ========================================
+
+  function ConnectionLine({ path, color, isFluid, rate, beltCount }) {
+    // Scale line thickness based on belt count (3px per belt, capped at 20px)
+    const strokeWidth = Math.max(3, Math.min(20, beltCount * 3));
+
+    // Parse the Bezier path to find the midpoint for label placement
+    // Path format: M x1,y1 C cx1,cy1 cx2,cy2 x2,y2
+    const pathMatch = path.match(/M ([\d.]+),([\d.]+) C ([\d.]+),([\d.]+) ([\d.]+),([\d.]+) ([\d.]+),([\d.]+)/);
+    let labelX = 0, labelY = 0;
+
+    if (pathMatch) {
+      const x1 = parseFloat(pathMatch[1]);
+      const y1 = parseFloat(pathMatch[2]);
+      const cx1 = parseFloat(pathMatch[3]);
+      const cy1 = parseFloat(pathMatch[4]);
+      const cx2 = parseFloat(pathMatch[5]);
+      const cy2 = parseFloat(pathMatch[6]);
+      const x2 = parseFloat(pathMatch[7]);
+      const y2 = parseFloat(pathMatch[8]);
+
+      // Evaluate Bezier curve at t=0.5 (midpoint)
+      const t = 0.5;
+      const mt = 1 - t;
+      const mt2 = mt * mt;
+      const mt3 = mt2 * mt;
+      const t2 = t * t;
+      const t3 = t2 * t;
+
+      labelX = mt3 * x1 + 3 * mt2 * t * cx1 + 3 * mt * t2 * cx2 + t3 * x2;
+      labelY = mt3 * y1 + 3 * mt2 * t * cy1 + 3 * mt * t2 * cy2 + t3 * y2;
+    }
+
+    return (
+      <g>
+        <path
+          d={path}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          fill="none"
+          strokeDasharray={isFluid ? '8 4' : 'none'}
+          opacity="0.8"
+        />
+        {labelX > 0 && (
+          <text
+            x={labelX}
+            y={labelY}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="#fff"
+            stroke="#000"
+            strokeWidth="0.5"
+            fontSize="11"
+            fontWeight="bold"
+          >
+            {beltCount}×
+          </text>
+        )}
+      </g>
+    );
+  }
+
+  function ProductionNode({ x, y, node }) {
+    const isResource = node.item.is_resource;
+    const isTarget = node.tier_idx === 0;
+
+    let nodeFill = '#374151';  // gray-700 (intermediate)
+    let nodeStroke = '#9333ea';  // purple-600
+    if (isResource) {
+      nodeFill = '#854d0e';  // yellow-900
+      nodeStroke = '#fbbf24';  // amber-400
+    } else if (isTarget) {
+      nodeFill = '#1e3a8a';  // blue-900
+      nodeStroke = '#3b82f6';  // blue-500
+    }
+
+    return (
+      <g transform={`translate(${x}, ${y})`}>
+        {/* Background rectangle */}
+        <rect
+          width="180"
+          height="120"
+          rx="8"
+          fill={nodeFill}
+          stroke={nodeStroke}
+          strokeWidth="2"
+        />
+
+        {/* Item name */}
+        <text
+          x="90"
+          y="25"
+          textAnchor="middle"
+          fill="#e5e7eb"
+          fontSize="14"
+          fontWeight="bold"
+        >
+          {node.item.name}
+        </text>
+
+        {/* Production rate */}
+        <text
+          x="90"
+          y="50"
+          textAnchor="middle"
+          fill="#fff"
+          fontSize="16"
+          fontWeight="bold"
+        >
+          {node.rate.toFixed(2)}/min
+        </text>
+
+        {/* Building info (if not raw resource) */}
+        {!isResource && node.recipe && (
+          <>
+            <text
+              x="90"
+              y="75"
+              textAnchor="middle"
+              fill="#d1d5db"
+              fontSize="12"
+            >
+              {node.recipe.building}
+            </text>
+            <text
+              x="90"
+              y="95"
+              textAnchor="middle"
+              fill="#fff"
+              fontSize="12"
+            >
+              {node.machines.toFixed(1)} machines
+            </text>
+          </>
+        )}
+
+        {/* Resource label */}
+        {isResource && (
+          <text
+            x="90"
+            y="85"
+            textAnchor="middle"
+            fill="#fb923c"
+            fontSize="12"
+          >
+            {node.item.is_ore ? '⛏️ Mined' : '💧 Extracted'}
+          </text>
+        )}
+      </g>
+    );
+  }
+
+  function SubwayMap({ line, selectedBelt, selectedPipe }) {
+    const [layout, setLayout] = React.useState(null);
+
+    // Get belt and pipe tier capacities
+    const BELT_TIERS = CONSTS.BELT_TIERS;
+    const PIPE_TIERS = CONSTS.PIPE_TIERS;
+    const beltTierCapacity = BELT_TIERS[selectedBelt];
+    const pipeTierCapacity = PIPE_TIERS[selectedPipe];
+
+    React.useEffect(() => {
+      if (line.tiers) {
+        const computed = calculateLayout(line.tiers, beltTierCapacity, pipeTierCapacity);
+        setLayout(computed);
+      }
+    }, [line.tiers, beltTierCapacity, pipeTierCapacity]);
+
+    if (!layout) return null;
+
+    return (
+      <div className="bg-gray-800 rounded-lg p-4 border-2 border-purple-700 overflow-auto my-4">
+        <h3 className="text-lg font-bold text-purple-400 mb-4">
+          Production Chain Visualization
+        </h3>
+        <svg
+          width={layout.width}
+          height={layout.height}
+          className="bg-gray-900"
+        >
+          {/* Connection lines (background) */}
+          <g className="connections">
+            {layout.connections.map((conn, idx) => (
+              <ConnectionLine key={idx} {...conn} />
+            ))}
+          </g>
+
+          {/* Production nodes (foreground) */}
+          <g className="nodes">
+            {layout.nodes.map((nodeData, idx) => (
+              <ProductionNode key={idx} {...nodeData} />
+            ))}
+          </g>
+        </svg>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-900 via-orange-800 to-yellow-900 p-8">
       <div className="max-w-6xl mx-auto">
@@ -723,83 +1103,13 @@ function SatisfactoryCalculator() {
                         Calculate Production Chain
                       </button>
 
-                      {/* Tier Display - NEW SECTION */}
+                      {/* Subway Map Visualization */}
                       {line.tiers && line.tiers.length > 0 && (
-                        <div className="bg-gray-700 rounded-lg p-4 border-2 border-purple-700 my-4">
-                          <h3 className="text-lg font-bold text-purple-400 mb-4">
-                            Production Tiers (End Product → Resources)
-                          </h3>
-
-                          {line.tiers.map((tier, tierIdx) => {
-                            // Get all nodes in this tier
-                            const tierNodes = Object.entries(tier).map(([itemId, node]) => ({
-                              itemId,
-                              ...node
-                            }));
-
-                            // Skip empty tiers
-                            if (tierNodes.length === 0) return null;
-
-                            return (
-                              <div
-                                key={tierIdx}
-                                className="mb-4 pb-4 border-b border-gray-600 last:border-b-0"
-                              >
-                                {/* Tier Header */}
-                                <div className="text-sm font-semibold text-purple-300 mb-3">
-                                  Tier {tierIdx}
-                                  {tierIdx === 0 ? ' (Target Products)' : ''}
-                                  {tierNodes.every(n => n.item.is_resource) ? ' (Raw Resources)' : ''}
-                                </div>
-
-                                {/* Tier Items in Horizontal Row */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                                  {tierNodes.map((node) => (
-                                    <div
-                                      key={node.itemId}
-                                      className="bg-gray-600 rounded-lg p-3 border-2 border-purple-500/50 hover:border-purple-400 transition-colors"
-                                    >
-                                      {/* Item Name */}
-                                      <div className="font-bold text-purple-300 text-sm mb-1">
-                                        {node.item.name}
-                                        {node.item.is_fluid && <span className="ml-1 text-blue-400">💧</span>}
-                                      </div>
-
-                                      {/* Production Rate */}
-                                      <div className="text-white text-lg font-semibold">
-                                        {node.rate.toFixed(2)}/min
-                                      </div>
-
-                                      {/* Building Info (if not a raw resource) */}
-                                      {!node.item.is_resource && node.recipe && (
-                                        <div className="mt-2 pt-2 border-t border-gray-500">
-                                          <div className="text-xs text-gray-300">
-                                            {node.recipe.building}
-                                          </div>
-                                          <div className="text-sm text-white">
-                                            {node.machines && node.machines.toFixed(2)} machines
-                                          </div>
-                                          {node.clocking && node.clocking !== 1 && (
-                                            <div className="text-xs text-yellow-300">
-                                              @ {(node.clocking * 100).toFixed(0)}% clock
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Raw Resource Note */}
-                                      {node.item.is_resource && (
-                                        <div className="text-xs text-orange-300 mt-1">
-                                          {node.item.is_ore ? '⛏️ Mined' : node.item.is_fluid ? '💧 Extracted' : '📦 Resource'}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <SubwayMap
+                          line={line}
+                          selectedBelt={selectedBelt}
+                          selectedPipe={selectedPipe}
+                        />
                       )}
 
                       {/* Results Section */}
