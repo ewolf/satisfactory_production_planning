@@ -680,7 +680,7 @@ let print_prodline = line => {
 }
 
 const CHECK_ALL_RECIPES = false;
-const TEST = true;
+const TEST = false;
 
 if (TEST) {
   const world = {

@@ -132,7 +132,6 @@ function SatisfactoryCalculator() {
           purity: 'Normal',
           consumers: []
         });
-debugger;
         // Track raw resources
         if (node.item.is_ore || node.item.name === 'Water' || node.item.name === 'Crude Oil' || node.item.name === 'Nitrogen Gas') {
           resources[node.item.name] = node.rate;
@@ -1533,7 +1532,6 @@ debugger;
                                          const inputPerMinute = (input.amount / recipe.time) * 60;
                                          const totalInputRate = inputPerMinute * entry.actualRate / ((recipe.output / recipe.time) * 60);
                                          
-                                         debugger;
                                          console.log(recipe,entry,input,`ENTRY ${inputPerMinute}, ${totalInputRate}`);
 
                                          const isFluid = inputItem.is_fluid;
