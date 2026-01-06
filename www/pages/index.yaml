@@ -1,0 +1,449 @@
+title: Satisfactory Production Planner
+
+scripts:
+  - /satdata.js
+
+import:
+  worldConfig: /components/world-config.yaml
+  itemSelector: /components/item-selector.yaml
+  tierTable: /components/tier-table.yaml
+
+less: |
+  @primary: #d97300;
+  @bg: #1a1a2e;
+  @card-bg: #16213e;
+  @text: #eee;
+  @border: #444;
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: @bg;
+    color: @text;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+  }
+
+  h1 {
+    color: @primary;
+    margin-bottom: 10px;
+  }
+
+  h2 {
+    color: @primary;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    font-size: 1.2em;
+  }
+
+  .app-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .section {
+    background: @card-bg;
+    border: 1px solid @border;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+
+  button {
+    background: @primary;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+
+    &:hover {
+      background: darken(@primary, 10%);
+    }
+
+    &:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+  }
+
+  .targets-list {
+    margin-top: 10px;
+
+    .target-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      margin-bottom: 5px;
+
+      .target-name {
+        flex: 1;
+      }
+
+      .target-rate {
+        color: @primary;
+        font-weight: bold;
+      }
+
+      button {
+        padding: 4px 8px;
+        font-size: 12px;
+        background: #c0392b;
+      }
+    }
+  }
+
+  .empty-message {
+    color: #888;
+    font-style: italic;
+    padding: 10px;
+  }
+
+vars:
+  beltLevel: "Mk.1"
+  minerLevel: "Mk.1"
+  targets: []
+  calculatedTiers: []
+
+lifecycle:
+  onMount: |
+    () => {
+      this.loadFromStorage();
+    }
+
+methods:
+  loadFromStorage: |
+    () => {
+      try {
+        const saved = localStorage.getItem('satisfactory_planner');
+        if (saved) {
+          const data = JSON.parse(saved);
+          $beltLevel = data.beltLevel || "Mk.1";
+          $minerLevel = data.minerLevel || "Mk.1";
+          $targets = data.targets || [];
+          this.recalculateTiers();
+        }
+      } catch (e) {
+        console.error('Failed to load from storage:', e);
+      }
+    }
+
+  saveToStorage: |
+    () => {
+      try {
+        const data = {
+          beltLevel: $beltLevel,
+          minerLevel: $minerLevel,
+          targets: $targets
+        };
+        localStorage.setItem('satisfactory_planner', JSON.stringify(data));
+      } catch (e) {
+        console.error('Failed to save to storage:', e);
+      }
+    }
+
+  handleConfigChange: |
+    (config) => {
+      $beltLevel = config.beltLevel;
+      $minerLevel = config.minerLevel;
+      this.saveToStorage();
+      this.recalculateTiers();
+    }
+
+  handleAddTarget: |
+    (target) => {
+      const existingIdx = $targets.findIndex(t => t.itemId === target.itemId);
+      if (existingIdx >= 0) {
+        $targets[existingIdx].rate += target.rate;
+      } else {
+        $targets.push(target);
+      }
+      $targets = [...$targets];
+      this.saveToStorage();
+      this.recalculateTiers();
+    }
+
+  removeTarget: |
+    (index) => {
+      $targets.splice(index, 1);
+      $targets = [...$targets];
+      this.saveToStorage();
+      this.recalculateTiers();
+    }
+
+  recalculateTiers: |
+    () => {
+      $calculatedTiers = this.buildTiers($targets, $beltLevel, $minerLevel);
+    }
+
+  buildTiers: |
+    (targets, beltLevel, minerLevel) => {
+      if (!targets || targets.length === 0) return [];
+
+      const beltCapacity = CONSTS.BELT_TIERS[beltLevel];
+      const minerBuilding = CONSTS.BUILDINGS.find(b => b.name === 'Miner ' + minerLevel);
+      const minerRate = minerBuilding ? minerBuilding.rate : 60;
+
+      const tiers = [];
+      const tierMap = new Map();
+      let currentTier = 1;
+
+      // Queue of items to process: {itemId, rate, tier}
+      let queue = targets.map(t => ({ itemId: t.itemId, rate: t.rate, tier: 1 }));
+
+      // Process queue tier by tier
+      while (queue.length > 0) {
+        const nextQueue = [];
+        const tierItems = new Map();
+
+        // Aggregate rates for items at current tier
+        for (const req of queue) {
+          if (req.tier === currentTier) {
+            const existing = tierItems.get(req.itemId) || 0;
+            tierItems.set(req.itemId, existing + req.rate);
+          } else {
+            nextQueue.push(req);
+          }
+        }
+
+        // Process each item at this tier
+        for (const [itemId, rate] of tierItems) {
+          const item = CONSTS.ITEMS[itemId];
+
+          // Check if this is a raw resource
+          if (item.is_resource) {
+            // Add to extractor tier later
+            nextQueue.push({ itemId, rate, tier: 'extractor' });
+            continue;
+          }
+
+          // Find default recipe for this item
+          const recipe = CONSTS.DEFAULT_RECIPES.find(r => r.item_id === itemId);
+          if (!recipe) {
+            console.warn('No recipe found for:', item.name);
+            continue;
+          }
+
+          // Calculate buildings needed based on output rate
+          const outputInfo = recipe.outputs.find(o => o.item_id === itemId);
+          const recipeOutputRate = outputInfo ? outputInfo.rate : recipe.outputs[0].rate;
+
+          // Start with buildings needed for output rate
+          let buildingsNeeded = Math.ceil(rate / recipeOutputRate);
+
+          // Check belt constraints on inputs
+          for (const input of recipe.inputs) {
+            const inputRatePerBuilding = input.rate;
+            if (inputRatePerBuilding > beltCapacity) {
+              // Need more buildings due to belt constraint
+              const buildingsForBelt = Math.ceil(rate / (beltCapacity * recipeOutputRate / inputRatePerBuilding));
+              buildingsNeeded = Math.max(buildingsNeeded, buildingsForBelt);
+            }
+          }
+
+          // Calculate actual output rate (buildings at capacity)
+          const actualOutputRate = buildingsNeeded * recipeOutputRate;
+
+          // Calculate the effective output (what we actually need/use)
+          // When belt-constrained, we build more buildings but use less capacity
+          const effectiveOutputRate = Math.max(rate, recipeOutputRate);
+
+          // Calculate input rates based on what we actually need to produce
+          // Use ceiling to nearest building's worth of production
+          const productionMultiplier = Math.ceil(rate / recipeOutputRate);
+
+          // Calculate output belts needed
+          const outputBelts = Math.ceil(actualOutputRate / beltCapacity);
+
+          // Create tier entry
+          const building = CONSTS.BUILDINGS.find(b => b.name === recipe.building) || { name: recipe.building };
+
+          const tierEntry = {
+            itemId,
+            itemName: item.name,
+            recipeId: recipe.recipe_id,
+            recipeName: recipe.name,
+            building: recipe.building,
+            buildingsNeeded,
+            outputRate: productionMultiplier * recipeOutputRate,
+            requestedRate: rate,
+            inputs: recipe.inputs.map(inp => ({
+              itemId: inp.item_id,
+              itemName: CONSTS.ITEMS[inp.item_id].name,
+              rate: inp.rate * productionMultiplier
+            })),
+            outputBelts,
+            tier: currentTier
+          };
+
+          // Add tier entry
+          const key = `${currentTier}-${itemId}`;
+          if (!tierMap.has(key)) {
+            tierMap.set(key, tierEntry);
+            tiers.push(tierEntry);
+          }
+
+          // Queue inputs for next tier based on production multiplier
+          for (const input of recipe.inputs) {
+            const inputRate = input.rate * productionMultiplier;
+            nextQueue.push({ itemId: input.item_id, rate: inputRate, tier: currentTier + 1 });
+          }
+        }
+
+        queue = nextQueue;
+        currentTier++;
+
+        // Safety limit
+        if (currentTier > 20) break;
+      }
+
+      // Process smelter items (group them in second-to-last tier)
+      const smelterTier = currentTier;
+      const extractorTier = currentTier + 1;
+
+      // Find all smelter entries and extractor entries
+      const smelterItems = new Map();
+      const extractorItems = new Map();
+
+      // Reprocess to group smelters and extractors
+      const finalTiers = [];
+      let maxTier = 0;
+
+      for (const entry of tiers) {
+        const item = CONSTS.ITEMS[entry.itemId];
+        const recipe = CONSTS.DEFAULT_RECIPES.find(r => r.recipe_id === entry.recipeId);
+
+        if (recipe && (recipe.building === 'Smelter' || recipe.building === 'Foundry')) {
+          // Aggregate smelter items
+          const existing = smelterItems.get(entry.itemId);
+          if (existing) {
+            existing.buildingsNeeded += entry.buildingsNeeded;
+            existing.outputRate += entry.outputRate;
+            existing.requestedRate += entry.requestedRate;
+          } else {
+            smelterItems.set(entry.itemId, { ...entry });
+          }
+        } else {
+          finalTiers.push(entry);
+          maxTier = Math.max(maxTier, entry.tier);
+        }
+      }
+
+      // Add smelter tier
+      const smelterTierNum = maxTier + 1;
+      for (const [itemId, entry] of smelterItems) {
+        entry.tier = smelterTierNum;
+        entry.outputBelts = Math.ceil(entry.outputRate / beltCapacity);
+
+        // Recalculate inputs based on aggregated output
+        const recipe = CONSTS.DEFAULT_RECIPES.find(r => r.recipe_id === entry.recipeId);
+        if (recipe) {
+          const recipeOutputRate = recipe.outputs.find(o => o.item_id === itemId)?.rate || recipe.outputs[0].rate;
+          const multiplier = entry.outputRate / recipeOutputRate;
+
+          entry.inputs = recipe.inputs.map(inp => ({
+            itemId: inp.item_id,
+            itemName: CONSTS.ITEMS[inp.item_id].name,
+            rate: inp.rate * multiplier
+          }));
+
+          // Add extractor requirements
+          for (const input of recipe.inputs) {
+            const inputItem = CONSTS.ITEMS[input.item_id];
+            if (inputItem.is_resource && inputItem.is_ore) {
+              const inputRate = input.rate * multiplier;
+              const existing = extractorItems.get(input.item_id);
+              if (existing) {
+                existing.rate += inputRate;
+              } else {
+                extractorItems.set(input.item_id, {
+                  itemId: input.item_id,
+                  itemName: inputItem.name,
+                  rate: inputRate
+                });
+              }
+            }
+          }
+        }
+
+        finalTiers.push(entry);
+      }
+
+      // Add extractor tier
+      const extractorTierNum = smelterTierNum + 1;
+      for (const [itemId, data] of extractorItems) {
+        const minersNeeded = Math.ceil(data.rate / minerRate);
+        const outputBelts = Math.ceil(data.rate / beltCapacity);
+
+        finalTiers.push({
+          itemId: data.itemId,
+          itemName: data.itemName,
+          recipeName: 'Normal Node',
+          building: 'Miner ' + minerLevel,
+          buildingsNeeded: minersNeeded,
+          outputRate: minersNeeded * minerRate,
+          requestedRate: data.rate,
+          inputs: [],
+          outputBelts,
+          tier: extractorTierNum
+        });
+      }
+
+      // Sort by tier
+      finalTiers.sort((a, b) => a.tier - b.tier);
+
+      return finalTiers;
+    }
+
+html: |
+  <div class="app-container">
+    <h1>Satisfactory Production Planner</h1>
+
+    <div class="section">
+      <h2>World Configuration</h2>
+      <worldConfig
+        beltLevel="{beltLevel}"
+        minerLevel="{minerLevel}"
+        onConfigChange="(config) => this.handleConfigChange(config)"
+      />
+    </div>
+
+    <div class="section">
+      <div class="section-header">
+        <h2>Production Targets</h2>
+      </div>
+      <span>(</span><itemSelector onAddTarget="(target) => this.handleAddTarget(target)" /><span>)</span>
+
+      <div class="targets-list">
+        <if condition="() => $targets.length === 0">
+          <div class="empty-message">No production targets set. Add an item above to start planning.</div>
+        </if>
+        <for items="$targets">
+          <div class="target-item">
+            <span class="target-name" textContent="(mod, item) => CONSTS.ITEMS[item.itemId].name"></span>
+            <span class="target-rate" textContent="(mod, item) => item.rate + '/min'"></span>
+            <button onClick="(e, mod, item, idx) => this.removeTarget(idx)">Remove</button>
+          </div>
+        </for>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Production Tiers</h2>
+      <tierTable tiers="{calculatedTiers}" beltLevel="{beltLevel}" />
+    </div>
+  </div>

@@ -17,7 +17,8 @@
       "Bash(cat:*)",
       "Bash(git -C /devel/proj/satisfactory_production_planning log --oneline -20)",
       "Bash(grep:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []

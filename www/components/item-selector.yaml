@@ -1,0 +1,164 @@
+title: Item Selector
+
+scripts:
+  - /satdata.js
+
+vars:
+  selectedItemId: ""
+  rate: 1
+  onAddTarget: null
+  searchFilter: ""
+
+less: |
+  .selector-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .selector-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    label {
+      font-size: 12px;
+      color: #aaa;
+      text-transform: uppercase;
+    }
+
+    select, input {
+      background: #2a2a4a;
+      color: #eee;
+      border: 1px solid #444;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+
+      &:focus {
+        outline: none;
+        border-color: #d97300;
+      }
+    }
+
+    select {
+      min-width: 250px;
+    }
+
+    input[type="number"] {
+      width: 80px;
+    }
+
+    input[type="text"] {
+      width: 150px;
+    }
+  }
+
+  button {
+    background: #d97300;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    height: 36px;
+
+    &:hover {
+      background: #b86200;
+    }
+
+    &:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+  }
+
+computed:
+  craftableItems: |
+    () => {
+      const filter = $searchFilter.toLowerCase();
+      return CONSTS.ITEMS
+        .filter(item => {
+          if (item.is_resource) return false;
+          const hasRecipe = CONSTS.DEFAULT_RECIPES.some(r => r.item_id === item.item_id);
+          if (!hasRecipe) return false;
+          if (filter && !item.name.toLowerCase().includes(filter)) return false;
+          return true;
+        })
+        .sort((a, b) => a.name.localeCompare(b.name));
+    }
+  canAdd: |
+    () => $selectedItemId !== "" && $rate > 0
+
+methods:
+  handleItemChange: |
+    (e) => {
+      $selectedItemId = e.target.value;
+    }
+  handleRateChange: |
+    (e) => {
+      $rate = parseFloat(e.target.value) || 0;
+    }
+  handleFilterChange: |
+    (e) => {
+      $searchFilter = e.target.value;
+    }
+  addTarget: |
+    () => {
+      if (!$canAdd) return;
+      if ($onAddTarget) {
+        $onAddTarget({
+          itemId: parseInt($selectedItemId),
+          rate: $rate
+        });
+      }
+      $selectedItemId = "";
+      $rate = 1;
+    }
+
+html: |
+  <div class="selector-row">
+    <div class="selector-field">
+      <label>Filter</label>
+      <input
+        type="text"
+        placeholder="Search..."
+        value="{searchFilter}"
+        onInput="(e) => this.handleFilterChange(e)"
+      />
+    </div>
+
+    <div class="selector-field">
+      <label>Item</label>
+      <select onChange="(e) => this.handleItemChange(e)">
+        <option value="">-- Select Item --</option>
+        <for items="$craftableItems">
+          <option
+            textContent="(mod, item) => item.name"
+            value="(mod, item) => item.item_id"
+            selected="(mod, item) => item.item_id.toString() === $selectedItemId"
+          ></option>
+        </for>
+      </select>
+    </div>
+
+    <div class="selector-field">
+      <label>Rate (/min)</label>
+      <input
+        type="number"
+        min="0.1"
+        step="0.1"
+        value="{rate}"
+        onInput="(e) => this.handleRateChange(e)"
+      />
+    </div>
+
+    <button
+      onClick="() => this.addTarget()"
+      disabled="() => !$canAdd"
+    >
+      Add Target
+    </button>
+  </div>

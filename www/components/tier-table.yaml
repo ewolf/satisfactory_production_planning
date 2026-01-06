@@ -1,0 +1,141 @@
+title: Tier Table
+
+scripts:
+  - /satdata.js
+
+vars:
+  tiers: []
+  beltLevel: "Mk.1"
+
+less: |
+  @primary: #d97300;
+  @header-bg: #2a2a4a;
+  @row-bg: rgba(255,255,255,0.03);
+  @row-hover: rgba(255,255,255,0.08);
+  @border: #444;
+
+  .tier-table-container {
+    overflow-x: auto;
+  }
+
+  .tier-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid @border;
+    }
+
+    th {
+      background: @header-bg;
+      color: @primary;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    tr:nth-child(even) {
+      background: @row-bg;
+    }
+
+    tr:hover {
+      background: @row-hover;
+    }
+
+    .tier-num {
+      font-weight: bold;
+      color: @primary;
+      text-align: center;
+    }
+
+    .building-count {
+      white-space: nowrap;
+    }
+
+    .recipe-name {
+      color: #8ac;
+    }
+
+    .output-rate {
+      color: #8c8;
+      white-space: nowrap;
+    }
+
+    .inputs-list {
+      font-size: 12px;
+      color: #aaa;
+
+      .input-item {
+        white-space: nowrap;
+        margin-bottom: 2px;
+      }
+    }
+
+    .belt-count {
+      text-align: center;
+    }
+  }
+
+  .empty-table {
+    text-align: center;
+    padding: 30px;
+    color: #888;
+    font-style: italic;
+  }
+
+computed:
+  hasTiers: |
+    () => $tiers && $tiers.length > 0
+
+methods:
+  formatInputs: |
+    (inputs) => {
+      if (!inputs || inputs.length === 0) return '-';
+      return inputs.map(inp => `${inp.rate}/min ${inp.itemName}`).join(', ');
+    }
+
+html: |
+  <div class="tier-table-container">
+    <if condition="() => !$hasTiers">
+      <div class="empty-table">
+        No production tiers calculated. Add a production target to see the build plan.
+      </div>
+    </if>
+    <if condition="() => $hasTiers">
+      <table class="tier-table">
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Buildings</th>
+            <th>Recipe</th>
+            <th>Output</th>
+            <th>Input Requirements</th>
+            <th>Output Belts</th>
+          </tr>
+        </thead>
+        <tbody>
+          <for items="$tiers">
+            <tr>
+              <td class="tier-num" textContent="(mod, item) => item.tier"></td>
+              <td class="building-count" textContent="(mod, item) => item.buildingsNeeded + ' ' + item.building"></td>
+              <td class="recipe-name" textContent="(mod, item) => item.recipeName"></td>
+              <td class="output-rate" textContent="(mod, item) => item.outputRate + '/min'"></td>
+              <td class="inputs-list">
+                <for items="(mod, item) => item.inputs || []">
+                  <div class="input-item" textContent="(mod2, inp) => inp.rate + '/min ' + inp.itemName"></div>
+                </for>
+                <if condition="(mod, item) => !item.inputs || item.inputs.length === 0">
+                  <span>-</span>
+                </if>
+              </td>
+              <td class="belt-count" textContent="(mod, item) => item.outputBelts"></td>
+            </tr>
+          </for>
+        </tbody>
+      </table>
+    </if>
+  </div>

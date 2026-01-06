@@ -1,0 +1,114 @@
+title: World Configuration
+
+scripts:
+  - /satdata.js
+
+vars:
+  beltLevel: "Mk.1"
+  minerLevel: "Mk.1"
+  onConfigChange: null
+
+less: |
+  .config-row {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    label {
+      font-size: 12px;
+      color: #aaa;
+      text-transform: uppercase;
+    }
+
+    select {
+      background: #2a2a4a;
+      color: #eee;
+      border: 1px solid #444;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 14px;
+      min-width: 150px;
+
+      &:focus {
+        outline: none;
+        border-color: #d97300;
+      }
+    }
+  }
+
+  .belt-info {
+    font-size: 12px;
+    color: #888;
+    margin-top: 5px;
+  }
+
+computed:
+  beltTiers: |
+    () => Object.keys(CONSTS.BELT_TIERS)
+  minerTiers: |
+    () => ['Mk.1', 'Mk.2', 'Mk.3']
+  currentBeltCapacity: |
+    () => CONSTS.BELT_TIERS[$beltLevel]
+  currentMinerRate: |
+    () => {
+      const building = CONSTS.BUILDINGS.find(b => b.name === 'Miner ' + $minerLevel);
+      return building ? building.rate : 60;
+    }
+
+methods:
+  handleBeltChange: |
+    (e) => {
+      $beltLevel = e.target.value;
+      this.emitChange();
+    }
+  handleMinerChange: |
+    (e) => {
+      $minerLevel = e.target.value;
+      this.emitChange();
+    }
+  emitChange: |
+    () => {
+      if ($onConfigChange) {
+        $onConfigChange({
+          beltLevel: $beltLevel,
+          minerLevel: $minerLevel
+        });
+      }
+    }
+
+html: |
+  <div class="config-row">
+    <div class="config-field">
+      <label>Belt Level</label>
+      <select onChange="(e) => this.handleBeltChange(e)">
+        <for items="$beltTiers">
+          <option
+            textContent="(mod, tier) => tier"
+            value="(mod, tier) => tier"
+            selected="(mod, tier) => tier === $beltLevel"
+          ></option>
+        </for>
+      </select>
+      <div class="belt-info">Capacity: {currentBeltCapacity}/min</div>
+    </div>
+
+    <div class="config-field">
+      <label>Miner Level</label>
+      <select onChange="(e) => this.handleMinerChange(e)">
+        <for items="$minerTiers">
+          <option
+            textContent="(mod, tier) => tier"
+            value="(mod, tier) => tier"
+            selected="(mod, tier) => tier === $minerLevel"
+          ></option>
+        </for>
+      </select>
+      <div class="belt-info">Rate: {currentMinerRate}/min (normal node)</div>
+    </div>
+  </div>
