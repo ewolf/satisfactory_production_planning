@@ -165,6 +165,8 @@ const CONSTS = {
     { item_id: 108, name: "Plutonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 109, name: "Uranium Waste", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 110, name: "Encased Plutonium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 111, name: "Plutonium Pellet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 112, name: "Non-fissile Uranium", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
   ],
   RECIPES: [
 
@@ -374,7 +376,7 @@ const CONSTS = {
 
     {"id":159,"name":"Singularity Cell","building":"Manufacturer","time":60,"inputs":[{"item_id":81,"amount":1,"rate":1},{"item_id":96,"amount":20,"rate":20},{"item_id":33,"amount":100,"rate":100},{"item_id":37,"amount":200,"rate":200}],"output":1,"isDefault":true,"outputs":[{"item_id":106,"rate":10,"output":10}],"item":106},
 
-    {"id":160,"name":"Sam Fluctuator","building":"Manufacturer","time":60,"inputs":[{"item_id":104,"amount":6,"rate":60},{"item_id":40,"amount":5,"rate":50},{"item_id":39,"amount":3,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":91,"rate":10,"output":10}],"item":91},
+    {"id":160,"name":"SAM Fluctuator","building":"Manufacturer","time":60,"inputs":[{"item_id":104,"amount":6,"rate":60},{"item_id":40,"amount":5,"rate":50},{"item_id":39,"amount":3,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":91,"rate":10,"output":10}],"item":91},
 
     {"id":161,"name":"Plutonium Waste","building":"Nuclear Power Plant","time":600,"inputs":[{"item_id":108,"amount":1,"rate":0.1},{"item_id":10,"amount":2400,"rate":240}],"output":1,"isDefault":true,"outputs":[{"item_id":105,"rate":10,"output":1}],"item":105},
 
@@ -383,6 +385,20 @@ const CONSTS = {
     {"id":163,"name":"Plutonium Fuel Rod","building":"Manufacturer","time":240,"inputs":[{"item_id":110,"amount":30,"rate":7.5},{"item_id":38,"amount":18,"rate":4.5},{"item_id":63,"amount":6,"rate":1.5},{"item_id":67,"amount":10,"rate":2.5}],"output":1,"isDefault":true,"outputs":[{"item_id":108,"rate":0.25,"output":1}],"item":108},
 
     {"id":164,"name":"Uranium Fuel Rod","building":"Manufacturer","time":150,"inputs":[{"item_id":79,"amount":50,"rate":20},{"item_id":26,"amount":3,"rate":1.2},{"item_id":63,"amount":5,"rate":2},{"item_id":67,"amount":10,"rate":2.5}],"output":1,"isDefault":true,"outputs":[{"item_id":61,"rate":0.4,"output":1}],"item":61},
+
+    {"id":165,"name":"Non-fissile Uranium","building":"Blender","time":24,"inputs":[{"item_id":109,"amount":15,"rate":37.5},{"item_id":44,"amount":10,"rate":25},{"item_id":24,"amount":6,"rate":15},{"item_id":23,"amount":6,"rate":15},{"item_id":10,"amount":6,"rate":15}],"output":20,"isDefault":true,"outputs":[{"item_id":112,"rate":50,"output":20}],"item":112},
+
+    {"id":166,"name":"Plutonium Pellet","building":"Particle Accelerator","time":60,"inputs":[{"item_id":112,"amount":100,"rate":100}],"output":30,"isDefault":true,"outputs":[{"item_id":111,"rate":30,"output":30},{"item_id":109,"rate":25,"output":25}],"item":111},
+
+    {"id":167,"name":"Encased Plutonium Cell","building":"Assembler","time":12,"inputs":[{"item_id":111,"amount":2,"rate":10},{"item_id":37,"amount":4,"rate":20}],"output":1,"isDefault":true,"outputs":[{"item_id":110,"rate":5,"output":1}],"item":110},
+
+    {"id":168,"name":"Alternate: Instant Plutonium Cell","building":"Particle Accelerator","time":120,"inputs":[{"item_id":112,"amount":150,"rate":75},{"item_id":46,"amount":20,"rate":10}],"output":20,"isDefault":false,"replaces":"Encased Plutonium Cell","outputs":[{"item_id":110,"rate":10,"output":20}],"item":110},
+
+    {"id":169,"name":"Nitric Acid","building":"Blender","time":6,"inputs":[{"item_id":12,"amount":12,"rate":120},{"item_id":10,"amount":3,"rate":30},{"item_id":33,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":24,"rate":30,"output":3}],"item":24},
+
+    {"id":170,"name":"Rocket Fuel","building":"Blender","time":6,"inputs":[{"item_id":21,"amount":6,"rate":60},{"item_id":24,"amount":1,"rate":10}],"output":10,"isDefault":true,"outputs":[{"item_id":26,"rate":100,"output":10},{"item_id":51,"rate":10,"output":1}],"item":26},
+
+    {"id":171,"name":"Alternate: Nitro Rocket Fuel","building":"Blender","time":2.4,"inputs":[{"item_id":19,"amount":4,"rate":100},{"item_id":12,"amount":3,"rate":75},{"item_id":6,"amount":4,"rate":100},{"item_id":3,"amount":2,"rate":50}],"output":6,"isDefault":false,"replaces":"Rocket Fuel","outputs":[{"item_id":26,"rate":150,"output":6},{"item_id":51,"rate":25,"output":1}],"item":26},
 
   ],
 
@@ -611,6 +627,7 @@ module.exports = {
 CONSTS.DEFAULT_RECIPES.forEach( rec => {
   let name = rec.name;
   if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
+  if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
   let line = {
     name: 'test prod line',
     targetItems: [CONSTS.NAME2ITEM[name]],
@@ -620,7 +637,7 @@ CONSTS.DEFAULT_RECIPES.forEach( rec => {
 //  if (rec.name == 'Cable') {
 //  if (rec.name == 'Dark Matter Residue') {
 //    console.log( '=====', line, rec, '==--==' );
-  if (!name.match(/BBLBLB/)) {
+  if (!name.match(/Rocketu Fuel/)) {
     setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
   }
 
