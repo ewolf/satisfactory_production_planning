@@ -406,7 +406,7 @@ function SatisfactoryCalculator() {
   const LAYOUT_CONSTANTS = {
     NODE_WIDTH: 180,
     NODE_HEIGHT: 120,
-    NODE_SPACING: 40,
+    NODE_SPACING: 100,  // Increased from 40 to 100 for more horizontal space
     TIER_SPACING: 200,
     TOP_MARGIN: 50,
     SIDE_MARGIN: 100,
@@ -440,12 +440,95 @@ function SatisfactoryCalculator() {
     return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
   }
 
-  function generateBezierPath(x1, y1, x2, y2) {
-    const controlOffset = Math.abs(y2 - y1) / 2;
-    const cx1 = x1;
-    const cy1 = y1 - controlOffset;  // Reversed for bottom-to-top flow
-    const cx2 = x2;
-    const cy2 = y2 + controlOffset;  // Reversed for bottom-to-top flow
+  function checkBoxIntersection(x1, y1, x2, y2, boxX, boxY, boxWidth, boxHeight, padding = 20) {
+    // Check if a line from (x1, y1) to (x2, y2) would intersect or come close to a box
+    // Add padding around the box to create clearance
+    const minX = boxX - padding;
+    const maxX = boxX + boxWidth + padding;
+    const minY = boxY - padding;
+    const maxY = boxY + boxHeight + padding;
+
+    // Get line bounding box
+    const lineMinX = Math.min(x1, x2);
+    const lineMaxX = Math.max(x1, x2);
+    const lineMinY = Math.min(y1, y2);
+    const lineMaxY = Math.max(y1, y2);
+
+    // Quick reject if bounding boxes don't overlap
+    if (lineMaxX < minX || lineMinX > maxX || lineMaxY < minY || lineMinY > maxY) {
+      return false;
+    }
+
+    // Check if the line path would go through the box area
+    // For vertical or near-vertical lines, check if box is in the x range
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    if (Math.abs(dx) < 50) {
+      // Nearly vertical line - check if box center is close to line x
+      const boxCenterX = boxX + boxWidth / 2;
+      return Math.abs(boxCenterX - x1) < (boxWidth / 2 + padding);
+    }
+
+    // For other lines, check if box center is near the line path
+    const boxCenterX = boxX + boxWidth / 2;
+    const boxCenterY = boxY + boxHeight / 2;
+
+    // Calculate distance from box center to line
+    const t = Math.max(0, Math.min(1, ((boxCenterX - x1) * dx + (boxCenterY - y1) * dy) / (dx * dx + dy * dy)));
+    const closestX = x1 + t * dx;
+    const closestY = y1 + t * dy;
+    const distance = Math.sqrt(Math.pow(closestX - boxCenterX, 2) + Math.pow(closestY - boxCenterY, 2));
+
+    return distance < (Math.max(boxWidth, boxHeight) / 2 + padding);
+  }
+
+  function generateBezierPath(x1, y1, x2, y2, allNodes = [], sourceItemId = null, targetItemId = null) {
+    const { NODE_WIDTH, NODE_HEIGHT } = LAYOUT_CONSTANTS;
+
+    // Find boxes that would be in the path
+    const obstructingBoxes = allNodes.filter(nodePos => {
+      // Don't consider boxes that are the endpoints (source or destination)
+      if (nodePos.itemId === sourceItemId || nodePos.itemId === targetItemId) {
+        return false;
+      }
+      return checkBoxIntersection(x1, y1, x2, y2, nodePos.x, nodePos.y, NODE_WIDTH, NODE_HEIGHT);
+    });
+
+    // If no obstructions, use straight line
+    if (obstructingBoxes.length === 0) {
+      return `M ${x1},${y1} L ${x2},${y2}`;
+    }
+
+    const horizontalDistance = Math.abs(x2 - x1);
+    const verticalDistance = Math.abs(y2 - y1);
+    const isNearVertical = horizontalDistance < 100;
+
+    let cx1, cy1, cx2, cy2;
+
+    if (isNearVertical && verticalDistance > 150) {
+      // Route around boxes to the right
+      // Calculate how far right we need to go
+      const rightmostBox = Math.max(...obstructingBoxes.map(b => b.x + NODE_WIDTH));
+      const sideOffset = rightmostBox - Math.min(x1, x2) + 60; // 60px clearance
+
+      const verticalMid = (y1 + y2) / 2;
+
+      // Create a wide arc to the right
+      cx1 = x1 + sideOffset;
+      cy1 = verticalMid;
+      cx2 = x2 + sideOffset;
+      cy2 = verticalMid;
+    } else {
+      // For diagonal connections with obstructions, add extra curve
+      const verticalOffset = Math.abs(y2 - y1) / 3;
+      const horizontalOffset = Math.max(Math.abs(x2 - x1) * 0.6, 100);
+
+      cx1 = x1 + (x2 > x1 ? horizontalOffset : -horizontalOffset);
+      cy1 = y1 - verticalOffset;
+      cx2 = x2 - (x2 > x1 ? horizontalOffset : -horizontalOffset);
+      cy2 = y2 + verticalOffset;
+    }
 
     return `M ${x1},${y1} C ${cx1},${cy1} ${cx2},${cy2} ${x2},${y2}`;
   }
@@ -491,7 +574,7 @@ function SatisfactoryCalculator() {
     return portData;
   }
 
-  function generateConnections(portData, tiers, beltTier, pipeTier) {
+  function generateConnections(portData, tiers, beltTier, pipeTier, nodePositions) {
     const connections = [];
 
     // Iterate through all tiers to find connections
@@ -510,10 +593,14 @@ function SatisfactoryCalculator() {
 
           if (!outputPort || !inputPort) return;
 
-          // Generate Bezier path
+          // Generate Bezier path with collision detection
+          // Pass source and target IDs to exclude endpoint boxes from obstruction check
           const path = generateBezierPath(
             outputPort.x, outputPort.y,
-            inputPort.x, inputPort.y
+            inputPort.x, inputPort.y,
+            nodePositions,
+            supplierId,
+            itemId
           );
 
           // Calculate belt/pipe count
@@ -569,7 +656,7 @@ function SatisfactoryCalculator() {
     const portData = calculatePorts(nodePositions, tiers);
 
     // 4. Generate connection paths
-    const connections = generateConnections(portData, tiers, beltTier, pipeTier);
+    const connections = generateConnections(portData, tiers, beltTier, pipeTier, nodePositions);
 
     return {
       nodes: nodePositions,
@@ -583,24 +670,25 @@ function SatisfactoryCalculator() {
   // SUBWAY MAP VISUALIZATION - REACT COMPONENTS
   // ========================================
 
-  function ConnectionLine({ path, color, isFluid, rate, beltCount }) {
+  function ConnectionLine({ path, color, isFluid, rate, beltCount, allNodes }) {
     // Scale line thickness based on belt count (3px per belt, capped at 20px)
     const strokeWidth = Math.max(3, Math.min(20, beltCount * 3));
+    const { NODE_WIDTH, NODE_HEIGHT } = LAYOUT_CONSTANTS;
 
-    // Parse the Bezier path to find the midpoint for label placement
-    // Path format: M x1,y1 C cx1,cy1 cx2,cy2 x2,y2
-    const pathMatch = path.match(/M ([\d.]+),([\d.]+) C ([\d.]+),([\d.]+) ([\d.]+),([\d.]+) ([\d.]+),([\d.]+)/);
-    let labelX = 0, labelY = 0;
+    let labelX = 0, labelY = 0, x1 = 0, y1 = 0, x2 = 0, y2 = 0;
 
-    if (pathMatch) {
-      const x1 = parseFloat(pathMatch[1]);
-      const y1 = parseFloat(pathMatch[2]);
-      const cx1 = parseFloat(pathMatch[3]);
-      const cy1 = parseFloat(pathMatch[4]);
-      const cx2 = parseFloat(pathMatch[5]);
-      const cy2 = parseFloat(pathMatch[6]);
-      const x2 = parseFloat(pathMatch[7]);
-      const y2 = parseFloat(pathMatch[8]);
+    // Try to parse as Bezier curve first: M x1,y1 C cx1,cy1 cx2,cy2 x2,y2
+    const bezierMatch = path.match(/M ([\d.]+),([\d.]+) C ([\d.]+),([\d.]+) ([\d.]+),([\d.]+) ([\d.]+),([\d.]+)/);
+
+    if (bezierMatch) {
+      x1 = parseFloat(bezierMatch[1]);
+      y1 = parseFloat(bezierMatch[2]);
+      const cx1 = parseFloat(bezierMatch[3]);
+      const cy1 = parseFloat(bezierMatch[4]);
+      const cx2 = parseFloat(bezierMatch[5]);
+      const cy2 = parseFloat(bezierMatch[6]);
+      x2 = parseFloat(bezierMatch[7]);
+      y2 = parseFloat(bezierMatch[8]);
 
       // Evaluate Bezier curve at t=0.5 (midpoint)
       const t = 0.5;
@@ -612,6 +700,40 @@ function SatisfactoryCalculator() {
 
       labelX = mt3 * x1 + 3 * mt2 * t * cx1 + 3 * mt * t2 * cx2 + t3 * x2;
       labelY = mt3 * y1 + 3 * mt2 * t * cy1 + 3 * mt * t2 * cy2 + t3 * y2;
+    } else {
+      // Try to parse as straight line: M x1,y1 L x2,y2
+      const lineMatch = path.match(/M ([\d.]+),([\d.]+) L ([\d.]+),([\d.]+)/);
+
+      if (lineMatch) {
+        x1 = parseFloat(lineMatch[1]);
+        y1 = parseFloat(lineMatch[2]);
+        x2 = parseFloat(lineMatch[3]);
+        y2 = parseFloat(lineMatch[4]);
+
+        // For straight lines, midpoint is simply the average
+        labelX = (x1 + x2) / 2;
+        labelY = (y1 + y2) / 2;
+      }
+    }
+
+    // Check if label position is inside any box and adjust if needed
+    if (allNodes && labelX > 0) {
+      const labelRadius = 14; // Disk radius
+      const padding = 10; // Extra clearance
+
+      for (const nodePos of allNodes) {
+        const boxLeft = nodePos.x - padding;
+        const boxRight = nodePos.x + NODE_WIDTH + padding;
+        const boxTop = nodePos.y - padding;
+        const boxBottom = nodePos.y + NODE_HEIGHT + padding;
+
+        // Check if label center is inside or near the box
+        if (labelX >= boxLeft && labelX <= boxRight && labelY >= boxTop && labelY <= boxBottom) {
+          // Move label to the right of the box
+          labelX = boxRight + labelRadius + 10;
+          break;
+        }
+      }
     }
 
     return (
@@ -624,20 +746,31 @@ function SatisfactoryCalculator() {
           strokeDasharray={isFluid ? '8 4' : 'none'}
           opacity="0.8"
         />
+
+        {/* Endpoint circles */}
         {labelX > 0 && (
-          <text
-            x={labelX}
-            y={labelY}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="#fff"
-            stroke="#000"
-            strokeWidth="0.5"
-            fontSize="11"
-            fontWeight="bold"
-          >
-            {beltCount}×
-          </text>
+          <>
+            <circle cx={x1} cy={y1} r="5" fill={color} opacity="0.9" />
+            <circle cx={x2} cy={y2} r="5" fill={color} opacity="0.9" />
+          </>
+        )}
+
+        {/* Label with colored disk background */}
+        {labelX > 0 && (
+          <>
+            <circle cx={labelX} cy={labelY} r="14" fill={color} opacity="0.9" />
+            <text
+              x={labelX}
+              y={labelY}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fill="#fff"
+              fontSize="12"
+              fontWeight="bold"
+            >
+              {beltCount}
+            </text>
+          </>
         )}
       </g>
     );
@@ -761,17 +894,17 @@ function SatisfactoryCalculator() {
           height={layout.height}
           className="bg-gray-900"
         >
-          {/* Connection lines (background) */}
-          <g className="connections">
-            {layout.connections.map((conn, idx) => (
-              <ConnectionLine key={idx} {...conn} />
-            ))}
-          </g>
-
-          {/* Production nodes (foreground) */}
+          {/* Production nodes (background) */}
           <g className="nodes">
             {layout.nodes.map((nodeData, idx) => (
               <ProductionNode key={idx} {...nodeData} />
+            ))}
+          </g>
+
+          {/* Connection lines (foreground) */}
+          <g className="connections">
+            {layout.connections.map((conn, idx) => (
+              <ConnectionLine key={idx} {...conn} allNodes={layout.nodes} />
             ))}
           </g>
         </svg>
@@ -1164,6 +1297,20 @@ function SatisfactoryCalculator() {
                         Calculate Production Chain
                       </button>
 
+                      {/* Power Summary - Standalone section */}
+                      {line.results && (
+                        <div className="mb-4">
+                          <div className="bg-gradient-to-r from-yellow-900 to-orange-900 rounded-lg p-4 border-2 border-yellow-600">
+                            <h3 className="text-lg font-bold text-yellow-300 mb-1">
+                              Total Power Required
+                            </h3>
+                            <p className="text-2xl font-bold text-white">
+                              {line.results.power.toFixed(2)} MW
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Subway Map Visualization */}
                       {line.tiers && line.tiers.length > 0 && (
                         <SubwayMap
@@ -1205,16 +1352,6 @@ function SatisfactoryCalculator() {
                               </p>
                             </div>
                           )}
-
-                          {/* Power Summary */}
-                          <div className="bg-gradient-to-r from-yellow-900 to-orange-900 rounded-lg p-4 border-2 border-yellow-600">
-                            <h3 className="text-lg font-bold text-yellow-300 mb-1">
-                              Total Power Required
-                            </h3>
-                            <p className="text-2xl font-bold text-white">
-                              {line.results.power.toFixed(2)} MW
-                            </p>
-                          </div>
 
                           {/* Buildings Required */}
                           <div className="bg-gray-700 rounded-lg p-4 border-2 border-orange-700">
