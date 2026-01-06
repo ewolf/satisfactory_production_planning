@@ -156,6 +156,9 @@ const CONSTS = {
     { item_id: 99, name: "Smart Plating", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 100, name: "Black Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 101, name: "Modular Engine", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 102, name: "Diamonds", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 103, name: "Fiscite Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 104, name: "Reanimated SAM", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
   ],
   RECIPES: [
 
@@ -203,8 +206,8 @@ const CONSTS = {
     {"id":34,"name":"Magnetic Field Generator","building":"Assembler","time":120,"inputs":[{"item_id":65,"amount":5,"rate":2.5},{"item_id":63,"amount":2,"rate":1}],"output":2,"isDefault":true,"outputs":[{"item_id":80,"rate":1,"output":2}],"item":80},
 
     // Refinery recipes
-    {"id":35,"name":"Plastic","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":48,"rate":20,"output":2}],"item":48},
-    {"id":36,"name":"Rubber","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":49,"rate":20,"output":2}],"item":49},
+    {"id":35,"name":"Plastic","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":48,"rate":20,"output":2},{"item_id":18,"output":1,"rate":10}],"item":48},
+    {"id":36,"name":"Rubber","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":3,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":49,"rate":20,"output":2},{"item_id":18,"output":1,"rate":20}],"item":49},
     {"id":37,"name":"Fuel","building":"Refinery","time":6,"inputs":[{"item_id":11,"amount":6,"rate":60}],"output":4,"isDefault":true,"outputs":[{"item_id":19,"rate":40,"output":4}],"item":19},
     {"id":38,"name":"Petroleum Coke","building":"Refinery","time":6,"inputs":[{"item_id":18,"amount":4,"rate":40}],"output":12,"isDefault":true,"outputs":[{"item_id":47,"rate":120,"output":12}],"item":47},
     {"id":39,"name":"Alumina Solution","building":"Refinery","time":6,"inputs":[{"item_id":7,"amount":12,"rate":120},{"item_id":10,"amount":18,"rate":180}],"output":12,"isDefault":true,"outputs":[{"item_id":22,"rate":120,"output":12}],"item":22},
@@ -233,12 +236,12 @@ const CONSTS = {
     {"id":56,"name":"Nuclear Pasta","building":"Particle Accelerator","time":120,"inputs":[{"item_id":88,"amount":200,"rate":100},{"item_id":89,"amount":1,"rate":0.5}],"output":1,"isDefault":true,"outputs":[{"item_id":81,"rate":0.5,"output":1}],"item":81},
 
     // Quantumn Encoer recipes
-    {"id":57,"name":"AI Expansion Server","building":"Quantum Encoder","time":15,"inputs":[{"item_id":80,"amount":1,"rate":4},{"item_id":82,"amount":1,"rate":4},{"item_id":83,"amount":1,"rate":4},{"item_id":90,"amount":25,"rate":100}],"output":1,"isDefault":true,"outputs":[{"item_id":84,"rate":4,"output":1}],"item":84},
-    {"id":58,"name":"Alien Power Matrix","building":"Quantum Encoder","time":24,"inputs":[{"item_id":91,"amount":5,"rate":12.5},{"item_id":92,"amount":3,"rate":7.5},{"item_id":83,"amount":3,"rate":7.5},{"item_id":90,"amount":24,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":85,"rate":2.5,"output":1}],"item":85},
-    {"id":59,"name":"Ficsonium Fuel Rod","building":"Quantum Encoder","time":24,"inputs":[{"item_id":93,"amount":2,"rate":5},{"item_id":63,"amount":2,"rate":5},{"item_id":94,"amount":40,"rate":100},{"item_id":90,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":86,"rate":2.5,"output":1}],"item":86},
-    {"id":60,"name":"Neural-Quantum Processor","building":"Quantum Encoder","time":20,"inputs":[{"item_id":95,"amount":5,"rate":15},{"item_id":71,"amount":1,"rate":3},{"item_id":94,"amount":15,"rate":45},{"item_id":90,"amount":25,"rate":75}],"output":1,"isDefault":true,"outputs":[{"item_id":82,"rate":3,"output":1}],"item":82},
-    {"id":61,"name":"Superposition Oscillator","building":"Quantum Encoder","time":12,"inputs":[{"item_id":96,"amount":6,"rate":30},{"item_id":70,"amount":1,"rate":5},{"item_id":64,"amount":9,"rate":45},{"item_id":90,"amount":25,"rate":125}],"output":1,"isDefault":true,"outputs":[{"item_id":83,"rate":5,"output":1}],"item":83},
-    {"id":62,"name":"Synthetic Power Shard","building":"Quantum Encoder","time":12,"inputs":[{"item_id":95,"amount":2,"rate":10},{"item_id":96,"amount":2,"rate":10},{"item_id":43,"amount":12,"rate":60},{"item_id":90,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":87,"rate":5,"output":1}],"item":87},
+    {"id":57,"name":"AI Expansion Server","building":"Quantum Encoder","time":15,"inputs":[{"item_id":80,"amount":1,"rate":4},{"item_id":82,"amount":1,"rate":4},{"item_id":83,"amount":1,"rate":4},{"item_id":90,"amount":25,"rate":100}],"output":1,"isDefault":true,"outputs":[{"item_id":84,"rate":4,"output":1},{"item_id":97,"rate":100,"output":25}],"item":84},
+    {"id":58,"name":"Alien Power Matrix","building":"Quantum Encoder","time":24,"inputs":[{"item_id":91,"amount":5,"rate":12.5},{"item_id":92,"amount":3,"rate":7.5},{"item_id":83,"amount":3,"rate":7.5},{"item_id":90,"amount":24,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":85,"rate":2.5,"output":1},{"item_id":97,"rate":60,"output":24}],"item":85},
+    {"id":59,"name":"Ficsonium Fuel Rod","building":"Quantum Encoder","time":24,"inputs":[{"item_id":93,"amount":2,"rate":5},{"item_id":63,"amount":2,"rate":5},{"item_id":94,"amount":40,"rate":100},{"item_id":90,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":86,"rate":2.5,"output":1},{"item_id":97,"rate":50,"output":20}],"item":86},
+    {"id":60,"name":"Neural-Quantum Processor","building":"Quantum Encoder","time":20,"inputs":[{"item_id":95,"amount":5,"rate":15},{"item_id":71,"amount":1,"rate":3},{"item_id":94,"amount":15,"rate":45},{"item_id":90,"amount":25,"rate":75}],"output":1,"isDefault":true,"outputs":[{"item_id":82,"rate":3,"output":1},{"item_id":97,"rate":125,"output":25}],"item":82},
+    {"id":61,"name":"Superposition Oscillator","building":"Quantum Encoder","time":12,"inputs":[{"item_id":96,"amount":6,"rate":30},{"item_id":70,"amount":1,"rate":5},{"item_id":64,"amount":9,"rate":45},{"item_id":90,"amount":25,"rate":125}],"output":1,"isDefault":true,"outputs":[{"item_id":83,"rate":5,"output":1},{"item_id":97,"rate":125,"output":25}],"item":83},
+    {"id":62,"name":"Synthetic Power Shard","building":"Quantum Encoder","time":12,"inputs":[{"item_id":95,"amount":2,"rate":10},{"item_id":96,"amount":2,"rate":10},{"item_id":43,"amount":12,"rate":60},{"item_id":90,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":87,"rate":5,"output":1},{"item_id":97,"rate":60,"output":12}],"item":87},
 
     // Alternate recipes
     {"id":63,"name":"Alternate: Iron Wire","building":"Constructor","time":24,"inputs":[{"item_id":28,"amount":5,"rate":12.5}],"output":9,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":22.5,"output":9}],"item":40},
@@ -262,7 +265,7 @@ const CONSTS = {
     {"id":81,"name":"Alternate: Electric Motor","building":"Assembler","time":16,"inputs":[{"item_id":63,"amount":1,"rate":3.75},{"item_id":56,"amount":2,"rate":7.5}],"output":2,"isDefault":false,"replaces":"Motor","outputs":[{"item_id":58,"rate":7.5,"output":2}],"item":58},
     {"id":82,"name":"Alternate: Electromagnetic Connection Rod","building":"Assembler","time":15,"inputs":[{"item_id":57,"amount":2,"rate":8},{"item_id":69,"amount":1,"rate":4}],"output":2,"isDefault":false,"replaces":"Electromagnetic Control Rod","outputs":[{"item_id":63,"rate":8,"output":2}],"item":63},
     {"id":83,"name":"Alternate: Encased Industrial Pipe","building":"Assembler","time":15,"inputs":[{"item_id":39,"amount":6,"rate":24},{"item_id":37,"amount":5,"rate":20}],"output":1,"isDefault":false,"replaces":"Encased Industrial Beam","outputs":[{"item_id":54,"rate":4,"output":1}],"item":54},
-    {"id":84,"name":"Alternate: Fine Black Powder","building":"Assembler","time":8,"inputs":[{"item_id":6,"amount":1,"rate":7.5},{"item_id":51,"amount":2,"rate":15}],"output":6,"isDefault":false,"replaces":"Black Powder","outputs":[{"rate":45,"output":6}]},
+    {"id":84,"name":"Alternate: Fine Black Powder","building":"Assembler","time":8,"inputs":[{"item_id":6,"amount":1,"rate":7.5},{"item_id":51,"amount":2,"rate":15}],"output":6,"isDefault":false,"replaces":"Black Powder","outputs":[{"item_id":100,"rate":45,"output":6}]},
     {"id":85,"name":"Alternate: Fine Concrete","building":"Assembler","time":12,"inputs":[{"item_id":44,"amount":3,"rate":15},{"item_id":2,"amount":12,"rate":60}],"output":10,"isDefault":false,"replaces":"Concrete","outputs":[{"item_id":37,"rate":50,"output":10}],"item":37},
     {"id":86,"name":"Alternate: Fused Quickwire","building":"Assembler","time":8,"inputs":[{"item_id":31,"amount":1,"rate":7.5},{"item_id":29,"amount":5,"rate":37.5}],"output":12,"isDefault":false,"replaces":"Quickwire","outputs":[{"item_id":45,"rate":90,"output":12}],"item":45},
     {"id":87,"name":"Alternate: Fused Wire","building":"Assembler","time":20,"inputs":[{"item_id":29,"amount":4,"rate":12},{"item_id":31,"amount":1,"rate":3}],"output":30,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":90,"output":30}],"item":40},
@@ -294,7 +297,7 @@ const CONSTS = {
     {"id":113,"name":"Alternate: Rigor Motor","building":"Manufacturer","time":48,"inputs":[{"item_id":56,"amount":3,"rate":3.75},{"item_id":57,"amount":3,"rate":3.75},{"item_id":70,"amount":1,"rate":1.25}],"output":6,"isDefault":false,"replaces":"Motor","outputs":[{"item_id":58,"rate":7.5,"output":6}],"item":58},
     {"id":114,"name":"Alternate: Super-State Computer","building":"Manufacturer","time":25,"inputs":[{"item_id":60,"amount":3,"rate":7.199999999999999},{"item_id":63,"amount":1,"rate":2.4},{"item_id":72,"amount":10,"rate":24},{"item_id":40,"amount":25,"rate":60}],"output":1,"isDefault":false,"replaces":"Supercomputer","outputs":[{"item_id":71,"rate":2.4,"output":1}],"item":71},
     {"id":115,"name":"Alternate: Turbo Electric Motor","building":"Manufacturer","time":64,"inputs":[{"item_id":58,"amount":7,"rate":6.5625},{"item_id":74,"amount":9,"rate":8.4375},{"item_id":63,"amount":5,"rate":4.6875},{"item_id":56,"amount":7,"rate":6.5625}],"output":3,"isDefault":false,"replaces":"Turbo Motor","outputs":[{"item_id":75,"rate":2.8125,"output":3}],"item":75},
-    {"id":116,"name":"Alternate: Plastic Smart Plating","building":"Manufacturer","time":24,"inputs":[{"item_id":36,"amount":1,"rate":2.5},{"item_id":56,"amount":1,"rate":2.5},{"item_id":48,"amount":3,"rate":7.5}],"output":2,"isDefault":false,"replaces":"Smart Plating","outputs":[{"rate":5,"output":2}]},
+    {"id":116,"name":"Alternate: Plastic Smart Plating","building":"Manufacturer","time":24,"inputs":[{"item_id":36,"amount":1,"rate":2.5},{"item_id":56,"amount":1,"rate":2.5},{"item_id":48,"amount":3,"rate":7.5}],"output":2,"isDefault":false,"replaces":"Smart Plating","outputs":[{"item_id":99,"rate":5,"output":2}]},
     {"id":117,"name":"Alternate: Silicon High-Speed Connector","building":"Manufacturer","time":40,"inputs":[{"item_id":45,"amount":60,"rate":90},{"item_id":44,"amount":25,"rate":37.5},{"item_id":59,"amount":2,"rate":3}],"output":2,"isDefault":false,"replaces":"High-Speed Connector","outputs":[{"item_id":69,"rate":3,"output":2}],"item":69},
     {"id":118,"name":"Alternate: Basic Iron Ingot","building":"Foundry","time":12,"inputs":[{"item_id":0,"amount":5,"rate":25},{"item_id":2,"amount":8,"rate":40}],"output":10,"isDefault":false,"replaces":"Iron Ingot","outputs":[{"item_id":28,"rate":50,"output":10}],"item":28},
     {"id":119,"name":"Alternate: Coke Steel Ingot","building":"Foundry","time":12,"inputs":[{"item_id":0,"amount":15,"rate":75},{"item_id":47,"amount":15,"rate":75}],"output":20,"isDefault":false,"replaces":"Steel Ingot","outputs":[{"item_id":30,"rate":100,"output":20}],"item":30},
@@ -333,8 +336,62 @@ const CONSTS = {
     {"id":152,"name":"Alternate: Instant Scrap","building":"Blender","time":6,"inputs":[{"item_id":7,"amount":15,"rate":150},{"item_id":3,"amount":10,"rate":100},{"item_id":23,"amount":5,"rate":50},{"item_id":10,"amount":6,"rate":60}],"output":30,"isDefault":false,"replaces":"Aluminum Scrap","outputs":[{"item_id":52,"rate":300,"output":30}],"item":52},
     {"id":153,"name":"Alternate: Sloppy Alumina","building":"Blender","time":3,"inputs":[{"item_id":7,"amount":10,"rate":200},{"item_id":10,"amount":10,"rate":200}],"output":12,"isDefault":false,"replaces":"Alumina Solution","outputs":[{"item_id":22,"rate":240,"output":12}],"item":22},
     {"id":154,"name":"Alternate: Turbo Blend Fuel","building":"Blender","time":8,"inputs":[{"item_id":19,"amount":2,"rate":15},{"item_id":18,"amount":4,"rate":30},{"item_id":6,"amount":3,"rate":22.5},{"item_id":47,"amount":3,"rate":22.5}],"output":6,"isDefault":false,"replaces":"Turbofuel","outputs":[{"item_id":21,"rate":45,"output":6}],"item":21},
+
+
+    // missed recipes
+    {"id":155,"name":"Copper Powder","building":"Constructor","time":6,"inputs":[{"item_id":29,"amount":30,"rate":300}],"output": 5,"isDefault":true,"outputs":[{"item_id":88,"rate":50,"output":5}],"item":88},
+
+    { "id":156,name:"Pressure Conversion Cube","building":"Assembler","time":60,"inputs":[{"item_id":78,"amount":1,"rate":1},{"item_id":74,"amount":2,"rate":2}],"output":1,"isDefault":true,"outputs":[{"item_id":89,"amount":1,"rate":1}],"item": 89},
+
+
+    {"id":157,"name":"Time Crystal","building":"Converter","time":10,"inputs":[{"item_id":102,"amount":2,"rate":12}],"output":1,"isDefault":true,"outputs":[{"item_id":95,"rate":6,"output":1}],"item":95},
+
+    {"id":158,"name":"Diamonds","building":"Particle Accelerator","time":2,"inputs":[{"item_id":3,"amount":20,"rate":600}],"output":1,"isDefault":true,"outputs":[{"item_id":102,"rate":30,"output":1}],"item":102},
+
+    {"id":159,"name":"Fiscite Trigon","building":"Constructor","time":6,"inputs":[{"item_id":103,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":94,"rate":30,"output":3}],"item":94},
+
+    {"id":160,"name":"Reanimated SAM","building":"Constructor","time":2,"inputs":[{"item_id":9,"amount":4,"rate":120}],"outputs":[{"item_id":104,"rate":30,"output":1}], "isDefault":true,"item":104,"output":1},
+
+    {"id":161,"name":"Ficsite Ingot (Aluminum)","building":"Converter","time":2,"inputs":[{"item_id":32,"amount":4,"rate":120},{"item_id":104,"rate":60,"amount":2}],"outputs":[{"item_id":103,"rate":30,"output":1}],"isDefault":true,"item":103,"output":1},
+    
+    {"id":162,"name":"Ficsite Ingot (Caterium)","building":"Converter","time":4,"inputs":[{"item_id":31,"amount":4,"rate":60},{"item_id":104,"rate":45,"amount":3}],"outputs":[{"item_id":103,"rate":15,"output":1}],"isDefault":true,"item":103,"output":1},
+
+    {"id":163,"name":"Ficsite Ingot (Iron)","building":"Converter","time":6,"inputs":[{"item_id":28,"amount":24,"rate":240},{"item_id":104,"rate":40,"amount":4}],"outputs":[{"item_id":103,"rate":10,"output":1}],"isDefault":true,"item":103,"output":1},
+
+    {"id":164,"name":"Excited Photonic Matter","building":"Converter","time":3,"inputs":[],"outputs":[{"item_id":90,"rate":200,"output":10}],"isDefault":true,"item":90,"output":10},
+
+    {"id":165,"name":"Dark Matter Crystal","building":"Particle Accelerator","time":2,"inputs":[{"item_id":102,"amount":1,"rate":30},{"item_id":97,"amount":5,"rate":150}],"output":1,"isDefault":true,"outputs":[{"item_id":96,"rate":30,"output":1}],"item":96},
+
+    {"id":157,"name":"Dark Matter Residue","building":"Converter","time":6,"inputs":[{"item_id":104,"amount":5,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":97,"rate":100,"output":10}],"item":97},
+
   ],
+
 };
+
+const ITEMS = CONSTS.ITEMS;
+
+
+function recipesForItem( world ) {
+  world = world || {};
+  let alts = world.alt_recipes || {};
+  return this.recipes ? Object.values(this.recipes)
+    .sort((a,b)=>a.isDefault&&b.isDefault?0:a.isDefault?-1:1 )
+    .filter(r => r.isDefault || alts[r.name] ) : [];
+}
+
+ITEMS.forEach( item => item.get_recipes = recipesForItem );
+
+
+// connect items to their recipes
+CONSTS.RECIPES.forEach( rec => {
+  rec.outputs.forEach( output => {
+    const item = ITEMS[output.item_id];
+    if (!item.recipes) { 
+      item.recipes = {};      
+    }
+    item.recipes[rec.name] = rec;
+  });
+} );
 
 CONSTS.NAME2ITEM_ID = CONSTS.ITEMS.reduce( (acc,val) => {
   acc[val.name] = val.item_id;
@@ -363,6 +420,8 @@ CONSTS.DEF2RECIPE = CONSTS.DEFAULT_RECIPES.reduce( (acc,val) => {
   return acc;
 }, {});
 
+CONSTS.ALT_RECIPES = CONSTS.RECIPES.filter( r => !r.isDefault );
+
 CONSTS.BUILDING2IDS = CONSTS.BUILDINGS.reduce( (acc,val) => {
   acc[val.name] = val.building_id;
   return acc;
@@ -377,8 +436,6 @@ CONSTS.BUILDING2RECIPES = CONSTS.RECIPES.reduce( (acc,val) => {
   return acc;
 }, {} );
 
-const ITEMS = CONSTS.ITEMS;
-
 const setupProdConf = (line,world) => {
   line.tiers = [{}];
 
@@ -388,6 +445,10 @@ const setupProdConf = (line,world) => {
   
   const addNeeded = (item,recipe,rate_adjust) => {
     let node = needed[item.item_id];
+    if (!recipe && !item.is_ore && ((item.name != 'Water' && item.name != 'Nitrogen Gas' && item.name != 'Crude Oil') || ! item.is_resource) ) {
+      console.log( '))))))', item, item.recipes,recipe, rate_adjust, '<<<<<' );
+      asdfasdf();
+    }
     let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate : item.name == 'Water' ? 120 : 60);
 
     if (node) {
@@ -410,9 +471,10 @@ const setupProdConf = (line,world) => {
       //        console.log(`need ${recipe.name} at ${rate_adjust*100}%`);
       recipe.inputs.forEach( inp => {
         const inp_item = ITEMS[inp.item_id];
-        const inp_recipe = CONSTS.DEF2RECIPE[inp_item.name];
+        const inp_recipe = inp_item.get_recipes(world)[0];
+
         const rate = rate_adjust * inp.rate;
-        if (inp_recipe) {
+        if (inp_recipe && ! inp_item.is_ore) {
           const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
           const inp_rate_adjust = rate / inp_recip_output_rate;
           addNeeded(inp_item, inp_recipe, inp_rate_adjust);
@@ -427,7 +489,7 @@ const setupProdConf = (line,world) => {
   line.targetItems.forEach( targ => {
     const targItem = ITEMS[targ.item_id];
     const targRate = targ.rate;
-    const recipe = CONSTS.DEF2RECIPE[targItem.name];
+    const recipe = targItem.get_recipes(world)[0];
     const inp_output_rate = recipe.outputs.filter( op => op.item_id == targ.item_id )[0].rate;
     const rate_adjust = targ.rate / inp_output_rate;
     addNeeded( targItem, recipe, rate_adjust );
@@ -458,7 +520,7 @@ const setupProdConf = (line,world) => {
       node.machines = Math.ceil( node.rate / extractor_output_rate );
       node.clocking = node.machines * node.rate / extractor_output_rate;
       
-    } else if(node.item.name == "Nitrogen") {
+    } else if(node.item.name == "Nitrogen Gas") {
       // TODO: node purity
       const extractor_output_rate = 60;
       node.machines = Math.ceil( node.rate / extractor_output_rate );
@@ -512,9 +574,14 @@ CONSTS.DEFAULT_RECIPES.forEach( rec => {
     name: 'test prod line',
     targetItems: [CONSTS.NAME2ITEM[rec.name]],
   };
-  console.log( line, rec );
-  setupProdConf( line );
+//  console.log( '=====', line, rec, '==--==' );
+  setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+
 } );
+
+
+
+
 // ----------------------------------------------------------------------
 
 
