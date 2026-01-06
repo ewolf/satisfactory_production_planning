@@ -137,7 +137,7 @@ const CONSTS = {
     { item_id: 84, name: "AI Expansion Server", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 85, name: "Alien Power Matrix", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 86, name: "Ficsonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { item_id: 87, name: "Synthetic Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 87, name: "Bad Synthetic Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false }, 
 
     // Late-Game Resources (indices 89-98)
     { item_id: 88, name: "Copper Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
@@ -157,8 +157,14 @@ const CONSTS = {
     { item_id: 100, name: "Black Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 101, name: "Modular Engine", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 102, name: "Diamonds", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { item_id: 103, name: "Fiscite Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 103, name: "Ficsite Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
     { item_id: 104, name: "Reanimated SAM", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 105, name: "Plutonium Waste", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 106, name: "Singularity Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 107, name: "Uranium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 108, name: "Plutonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 109, name: "Uranium Waste", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 110, name: "Encased Plutonium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
   ],
   RECIPES: [
 
@@ -241,7 +247,7 @@ const CONSTS = {
     {"id":59,"name":"Ficsonium Fuel Rod","building":"Quantum Encoder","time":24,"inputs":[{"item_id":93,"amount":2,"rate":5},{"item_id":63,"amount":2,"rate":5},{"item_id":94,"amount":40,"rate":100},{"item_id":90,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":86,"rate":2.5,"output":1},{"item_id":97,"rate":50,"output":20}],"item":86},
     {"id":60,"name":"Neural-Quantum Processor","building":"Quantum Encoder","time":20,"inputs":[{"item_id":95,"amount":5,"rate":15},{"item_id":71,"amount":1,"rate":3},{"item_id":94,"amount":15,"rate":45},{"item_id":90,"amount":25,"rate":75}],"output":1,"isDefault":true,"outputs":[{"item_id":82,"rate":3,"output":1},{"item_id":97,"rate":125,"output":25}],"item":82},
     {"id":61,"name":"Superposition Oscillator","building":"Quantum Encoder","time":12,"inputs":[{"item_id":96,"amount":6,"rate":30},{"item_id":70,"amount":1,"rate":5},{"item_id":64,"amount":9,"rate":45},{"item_id":90,"amount":25,"rate":125}],"output":1,"isDefault":true,"outputs":[{"item_id":83,"rate":5,"output":1},{"item_id":97,"rate":125,"output":25}],"item":83},
-    {"id":62,"name":"Synthetic Power Shard","building":"Quantum Encoder","time":12,"inputs":[{"item_id":95,"amount":2,"rate":10},{"item_id":96,"amount":2,"rate":10},{"item_id":43,"amount":12,"rate":60},{"item_id":90,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":87,"rate":5,"output":1},{"item_id":97,"rate":60,"output":12}],"item":87},
+    {"id":62,"name":"Synthetic Power Shard","building":"Quantum Encoder","time":12,"inputs":[{"item_id":95,"amount":2,"rate":10},{"item_id":96,"amount":2,"rate":10},{"item_id":43,"amount":12,"rate":60},{"item_id":90,"amount":12,"rate":60}],"output":1,"isDefault":true,"outputs":[{"item_id":92,"rate":5,"output":1},{"item_id":97,"rate":60,"output":12}],"item":92},
 
     // Alternate recipes
     {"id":63,"name":"Alternate: Iron Wire","building":"Constructor","time":24,"inputs":[{"item_id":28,"amount":5,"rate":12.5}],"output":9,"isDefault":false,"replaces":"Wire","outputs":[{"item_id":40,"rate":22.5,"output":9}],"item":40},
@@ -348,7 +354,7 @@ const CONSTS = {
 
     {"id":158,"name":"Diamonds","building":"Particle Accelerator","time":2,"inputs":[{"item_id":3,"amount":20,"rate":600}],"output":1,"isDefault":true,"outputs":[{"item_id":102,"rate":30,"output":1}],"item":102},
 
-    {"id":159,"name":"Fiscite Trigon","building":"Constructor","time":6,"inputs":[{"item_id":103,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":94,"rate":30,"output":3}],"item":94},
+    {"id":159,"name":"Ficsite Trigon","building":"Constructor","time":6,"inputs":[{"item_id":103,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":94,"rate":30,"output":3}],"item":94},
 
     {"id":160,"name":"Reanimated SAM","building":"Constructor","time":2,"inputs":[{"item_id":9,"amount":4,"rate":120}],"outputs":[{"item_id":104,"rate":30,"output":1}], "isDefault":true,"item":104,"output":1},
 
@@ -364,6 +370,20 @@ const CONSTS = {
 
     {"id":157,"name":"Dark Matter Residue","building":"Converter","time":6,"inputs":[{"item_id":104,"amount":5,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":97,"rate":100,"output":10}],"item":97},
 
+    {"id":158,"name":"Ficsonium","building":"Particle Accelerator","time":6,"inputs":[{"item_id":105,"amount":1,"rate":10},{"item_id":106,"amount":1,"rate":10},{"item_id":97,"amount":20,"rate":200}],"output":1,"isDefault":true,"outputs":[{"item_id":93,"rate":1,"output":10}],"item":93},
+
+    {"id":159,"name":"Singularity Cell","building":"Manufacturer","time":60,"inputs":[{"item_id":81,"amount":1,"rate":1},{"item_id":96,"amount":20,"rate":20},{"item_id":33,"amount":100,"rate":100},{"item_id":37,"amount":200,"rate":200}],"output":1,"isDefault":true,"outputs":[{"item_id":106,"rate":10,"output":10}],"item":106},
+
+    {"id":160,"name":"Sam Fluctuator","building":"Manufacturer","time":60,"inputs":[{"item_id":104,"amount":6,"rate":60},{"item_id":40,"amount":5,"rate":50},{"item_id":39,"amount":3,"rate":30}],"output":1,"isDefault":true,"outputs":[{"item_id":91,"rate":10,"output":10}],"item":91},
+
+    {"id":161,"name":"Plutonium Waste","building":"Nuclear Power Plant","time":600,"inputs":[{"item_id":108,"amount":1,"rate":0.1},{"item_id":10,"amount":2400,"rate":240}],"output":1,"isDefault":true,"outputs":[{"item_id":105,"rate":10,"output":1}],"item":105},
+
+    {"id":162,"name":"Uranium Waste","building":"Nuclear Power Plant","time":300,"inputs":[{"item_id":61,"amount":1,"rate":0.2},{"item_id":10,"amount":1200,"rate":240}],"output":1,"isDefault":true,"outputs":[{"item_id":109,"rate":10,"output":1}],"item":105},
+
+    {"id":163,"name":"Plutonium Fuel Rod","building":"Manufacturer","time":240,"inputs":[{"item_id":110,"amount":30,"rate":7.5},{"item_id":38,"amount":18,"rate":4.5},{"item_id":63,"amount":6,"rate":1.5},{"item_id":67,"amount":10,"rate":2.5}],"output":1,"isDefault":true,"outputs":[{"item_id":108,"rate":0.25,"output":1}],"item":108},
+
+    {"id":164,"name":"Uranium Fuel Rod","building":"Manufacturer","time":150,"inputs":[{"item_id":79,"amount":50,"rate":20},{"item_id":26,"amount":3,"rate":1.2},{"item_id":63,"amount":5,"rate":2},{"item_id":67,"amount":10,"rate":2.5}],"output":1,"isDefault":true,"outputs":[{"item_id":61,"rate":0.4,"output":1}],"item":61},
+
   ],
 
 };
@@ -374,9 +394,19 @@ const ITEMS = CONSTS.ITEMS;
 function recipesForItem( world ) {
   world = world || {};
   let alts = world.alt_recipes || {};
-  return this.recipes ? Object.values(this.recipes)
-    .sort((a,b)=>a.isDefault&&b.isDefault?0:a.isDefault?-1:1 )
-    .filter(r => r.isDefault || alts[r.name] ) : [];
+  const rs = this.recipes ? Object.values(this.recipes)
+    .sort((a,b)=>
+      {
+        const d1 = a.isDefault&&b.isDefault?0:a.isDefault?-1:1;
+        const i1 = a.item==this.item_id?-1:b.item==this.item_id?1:0;
+//  console.log( a.name, b.name, d1, i1 );
+        return d1 || i1;
+      } )
+        .filter(r => r.isDefault || alts[r.name] ) : [];
+//console.log( rs.map( r => r.name ) );
+//  asdf();
+
+  return rs;
 }
 
 ITEMS.forEach( item => item.get_recipes = recipesForItem );
@@ -386,6 +416,7 @@ ITEMS.forEach( item => item.get_recipes = recipesForItem );
 CONSTS.RECIPES.forEach( rec => {
   rec.outputs.forEach( output => {
     const item = ITEMS[output.item_id];
+if(!item)console.log(rec,output);
     if (!item.recipes) { 
       item.recipes = {};      
     }
@@ -444,6 +475,7 @@ const setupProdConf = (line,world) => {
   const needed = {};
   
   const addNeeded = (item,recipe,rate_adjust) => {
+    console.log( `    ${item.name}`);
     let node = needed[item.item_id];
     if (!recipe && !item.is_ore && ((item.name != 'Water' && item.name != 'Nitrogen Gas' && item.name != 'Crude Oil') || ! item.is_resource) ) {
       console.log( '))))))', item, item.recipes,recipe, rate_adjust, '<<<<<' );
@@ -464,6 +496,7 @@ const setupProdConf = (line,world) => {
           };
     }
 
+    const more_needed = [];
     if (recipe) {
 
       node.recipe = recipe;
@@ -477,13 +510,14 @@ const setupProdConf = (line,world) => {
         if (inp_recipe && ! inp_item.is_ore) {
           const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
           const inp_rate_adjust = rate / inp_recip_output_rate;
-          addNeeded(inp_item, inp_recipe, inp_rate_adjust);
+          more_needed.push( () => addNeeded(inp_item, inp_recipe, inp_rate_adjust) );
         } else {
           const extract_rate_adj = rate / (inp_item.name == 'Water' ? 120 : 60);
-          addNeeded(inp_item, null, extract_rate_adj);
+          more_needed.push( () => addNeeded(inp_item, null, extract_rate_adj) );
         }
       });
     }
+    return more_needed;
   };
 
   line.targetItems.forEach( targ => {
@@ -492,7 +526,12 @@ const setupProdConf = (line,world) => {
     const recipe = targItem.get_recipes(world)[0];
     const inp_output_rate = recipe.outputs.filter( op => op.item_id == targ.item_id )[0].rate;
     const rate_adjust = targ.rate / inp_output_rate;
-    addNeeded( targItem, recipe, rate_adjust );
+    let moreNeeded = addNeeded( targItem, recipe, rate_adjust );
+    while( moreNeeded.length > 0 ) {
+      let an = moreNeeded.pop();
+      let even_more = an();
+      even_more.length && moreNeeded.push( ...even_more );
+    }
   });
 
   Object.values( needed ).forEach( node => {
@@ -557,7 +596,7 @@ const setupProdConf = (line,world) => {
     updateTier( targ.item_id, 0 );
   });
 
-  //    console.log(tiers);
+  //console.log(tiers);
   console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ));
 
   return line;
@@ -570,12 +609,20 @@ module.exports = {
 };
 
 CONSTS.DEFAULT_RECIPES.forEach( rec => {
+  let name = rec.name;
+  if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
   let line = {
     name: 'test prod line',
-    targetItems: [CONSTS.NAME2ITEM[rec.name]],
+    targetItems: [CONSTS.NAME2ITEM[name]],
   };
-//  console.log( '=====', line, rec, '==--==' );
-  setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+  
+//  if (!rec.name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
+//  if (rec.name == 'Cable') {
+//  if (rec.name == 'Dark Matter Residue') {
+//    console.log( '=====', line, rec, '==--==' );
+  if (!name.match(/BBLBLB/)) {
+    setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+  }
 
 } );
 
