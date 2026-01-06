@@ -14,105 +14,173 @@
     ================================================================================
     SATISFACTORY PRODUCTION CALCULATOR - DEVELOPER NOTES
     ================================================================================
-    
+
+    ⚠️  IMPORTANT: This index.html loads satrunner.js, which is currently an
+        INCOMPLETE implementation. The working calculator is in satprod.js.
+
     CRITICAL: When modifying this file, UPDATE THIS COMMENT SECTION to reflect
-    any changes to the architecture, flow, or key decisions.
-    
+    any changes to the architecture, structure, or loaded files.
+
     ================================================================================
-    ARCHITECTURE OVERVIEW
+    CURRENT ARCHITECTURE (IN-PROGRESS REFACTOR)
     ================================================================================
-    
-    This calculator determines the buildings, resources, and power needed to produce
-    target items in Satisfactory, accounting for:
-    - Belt/pipe capacity limits (items can't flow faster than infrastructure allows)
-    - Input constraints (buildings can't run if inputs can't be delivered)
-    - Power shard optimization (minimize buildings by overclocking with shards)
-    - Underclocking (reduce power by running fewer buildings slower)
-    
+
+    This HTML loads two JavaScript files:
+    1. satdata.js - Game data definitions (items, recipes, buildings, constants)
+    2. satrunner.js - React UI shell (INCOMPLETE - missing calculation logic)
+
+    **Status:** Work-in-progress refactor. Full working implementation exists in
+    satprod.js but is not referenced by this HTML file.
+
     ================================================================================
-    CALCULATION FLOW
+    SATDATA.JS - GAME DATA MODULE
     ================================================================================
-    
-    1. RECURSIVE REQUIREMENT CALCULATION
-       - Start with target items (e.g., "5 Smart Plating/min")
-       - Recursively calculate all intermediate items and raw resources needed
-       - Consolidate by building-item pair (e.g., all "Constructor → Screw" together)
-       - Track which items consume each intermediate (for display)
-    
-    2. INPUT CONSTRAINT CHECKING (BEFORE SPLITTING)
-       - Iteratively check if inputs can be delivered (belt/pipe capacity + supply)
-       - Reduce production rates when inputs are bottlenecked
-       - This stabilizes BEFORE we split prodconfs
-       - Preserves inputConstrained/limitingInput/limitingReason flags
-    
-    3. CAPACITY-BASED SPLITTING
-       - Split consolidated prodconfs ONLY when they exceed belt/pipe capacity
-       - Example: 185 screws/min with 60/min belt → 4 prodconfs (60, 60, 60, 5)
-       - Mark splits with isCapped flag (true for full-capacity splits only)
-       - Preserve input constraint info from step 2
-    
-    4. RESOURCE ADJUSTMENT
-       - Recalculate raw resource needs based on actual production rates
-       - Adjust miner/extractor counts to match consumption
-    
-    5. OPTIMIZATION & DISPLAY
-       - Optimize building counts with power shards (minimize buildings)
-       - Calculate underclocking when buildings would overproduce
-       - Calculate total power consumption
-       - Display warnings for capacity limits and input constraints
-    
+
+    **Purpose:** Centralized repository of all Satisfactory game data
+
+    **Data Structures:**
+
+    1. CONSTS Object:
+       - BELT_TIERS: Conveyor belt capacities (Mk.1: 60/min → Mk.6: 1200/min)
+       - PIPE_TIERS: Pipeline capacities (Mk.1: 300 m³/min, Mk.2: 600 m³/min)
+       - BUILDINGS: 15 building types with base power consumption
+         Example: Constructor (4 MW), Manufacturer (55 MW), Particle Accelerator (500 MW)
+       - ITEMS: Array of 113 items with properties:
+         * item_id: Unique identifier (0-112)
+         * name: Display name
+         * is_fluid: Boolean (determines belt vs pipe)
+         * is_ore: Raw mineable resource
+         * is_resource: Any raw input (ores + fluids like water/oil)
+         * is_fuel: Can be used for power generation
+       - RECIPES: Array of 172 recipes (default + alternates):
+         * id: Recipe ID
+         * name: Recipe name (e.g., "Iron Ingot", "Alternate: Pure Iron Ingot")
+         * building: Required building type
+         * time: Crafting time in seconds
+         * inputs: Array of {item_id, amount, rate}
+         * outputs: Array of {item_id, rate, output} (supports byproducts)
+         * isDefault: true for default recipes, false for alternates
+         * replaces: (alternates only) name of default recipe it replaces
+
+    2. Lookup Maps (generated at module load):
+       - NAME2ITEM_ID: Item name → item_id (for UI dropdowns)
+       - NAME2ITEM: Item name → full item object
+       - BUILDING2IDS: Building name → building_id
+       - DEFAULT_RECIPES: Filtered list of default recipes only
+       - ALT_RECIPES: Filtered list of alternate recipes only
+       - BUILDING2RECIPES: Map of building → array of recipes
+
+    3. Item Enhancement:
+       - Each item gets `item.recipes = {}` map of recipe name → recipe object
+       - Each item gets `item.get_recipes(world)` function to filter applicable recipes
+
+    **Key Functions:**
+
+    recipesForItem(world):
+      - Attached to each ITEMS entry
+      - Returns array of applicable recipes for that item
+      - Filters based on world.alt_recipes settings (user-selected alternates)
+      - Sorts: default recipes first, then recipes producing this item
+
+    setupProdConf(line, world):
+      - Legacy production calculation function
+      - Takes: production line with targetItems array
+      - Recursively calculates all intermediate items and raw resources
+      - Organizes into "tiers" (dependency depth)
+      - Returns: line with populated tiers array
+      - **Status:** May be deprecated - not connected to satrunner.js
+
     ================================================================================
-    KEY DESIGN DECISIONS
+    SATRUNNER.JS - REACT UI SHELL (INCOMPLETE)
     ================================================================================
-    
-    WHY NO POST-SPLIT CONSTRAINT CHECKING:
-    - Input constraints are calculated BEFORE splitting to get stable rates
-    - Splitting is purely about belt/pipe capacity, not production limits
-    - Post-split checking would cause rates to change AFTER isCapped flags are set
-    - This creates confusing UI where <60/min shows "belt limit reached" warning
-    
-    WHY CONSOLIDATE THEN SPLIT:
-    - User wants to see ONE prodconf for "Screws" when possible
-    - Only split into multiple when exceeding capacity (60/min on Belt Mk.1)
-    - This keeps the UI clean: "2 Constructors" instead of two separate entries
-    
-    WHY TRACK CONSUMERS:
-    - Shows "Used by: Rotor, Reinforced Iron Plate" on intermediates
-    - Helps users understand the production chain
-    
+
+    **Purpose:** React application for calculator UI (work in progress)
+
+    **Current Implementation:**
+
+    1. State Management:
+       - useState for React state (world, productionLines, etc.)
+       - Imports satdata.js to access CONSTS
+       - Attempts to call satdata.setupProdConf() at initialization
+
+    2. UI Components (JSX):
+       - Global Settings section:
+         * Conveyor Belt Tier selector (uses BELT_TIERS from satdata)
+         * Miner Tier selector
+         * Pipeline Tier selector
+       - Alternate Recipes section:
+         * Expandable panel showing available alternates
+         * Toggle switches to enable/disable specific alternates
+       - Data Management buttons:
+         * Export to file
+         * Import from file
+         * Clear all data
+       - localStorage integration for saving/loading state
+
+    3. Missing Components:
+       - Production calculation logic (NOT IMPLEMENTED)
+       - calculateProduction() function referenced but undefined
+       - Production line display/results rendering incomplete
+       - No constraint checking or optimization logic
+
+    **Data Flow (Intended but Incomplete):**
+    ```
+    User selects target items
+        ↓
+    (Missing: calculation function)
+        ↓
+    (Missing: results rendering)
+    ```
+
+    **What Works:**
+    - Renders UI for settings selection
+    - Can toggle alternate recipes
+    - localStorage save/load structure exists
+
+    **What Doesn't Work:**
+    - No production calculation
+    - No results display
+    - References undefined variables/functions
+
     ================================================================================
-    COMMON PITFALLS TO AVOID
+    WHY THIS ARCHITECTURE
     ================================================================================
-    
-    1. DON'T do input constraint checking after splitting
-       → Causes rates to change after isCapped flags are set
-       → Results in confusing warnings
-    
-    2. DON'T use duplicate variable declarations (let, const)
-       → Causes JavaScript syntax errors
-       → Always check if variable already exists in scope
-    
-    3. DON'T forget to preserve constraint info when splitting
-       → inputConstrained, limitingInput, limitingReason must carry over
-       → Otherwise split prodconfs lose their warning context
-    
-    4. DON'T mark all splits as "capped"
-       → Only full-capacity splits (at 60/60) should show belt warning
-       → Remainder split (like 5/60) should not show warning
-    
-    5. DON'T recalculate resources before adjusting production
-       → Calculate actual consumption AFTER all constraints are applied
-       → Then update miner/extractor counts to match
-    
+
+    **Separation of Concerns:**
+    - satdata.js = Pure data (no UI, no React dependencies)
+    - satrunner.js = UI layer (React components, user interaction)
+    - This allows satdata.js to be used by other tools (Node.js scripts, tests)
+
+    **Benefits:**
+    - Data updates don't require touching UI code
+    - Can test calculations independently of React
+    - Multiple UIs can share same data module
+
+    **Current Limitation:**
+    - Calculation logic not yet implemented in this architecture
+    - Working version (satprod.js) has inline data instead of importing satdata.js
+
     ================================================================================
-    VARIABLE NAMING CONVENTIONS
+    FILES IN THIS PROJECT
     ================================================================================
-    
-    buildingProduction: Object mapping "Building|Item" to consolidated production data
-    finalProdconfs: Array of split/unsplit prodconfs ready for display
-    itemTotalProduction: Total production rate by item (used for constraint checking)
-    actualResourceNeeds: Raw resources needed based on actual (constrained) production
-    
+
+    index.html - This file (loads satrunner.js)
+    satdata.js - Game data + legacy calculation function (172 recipes, 113 items)
+    satrunner.js - Incomplete React UI (missing calculation logic)
+    satprod.js - Working calculator implementation (not loaded here, has inline data)
+
+    ================================================================================
+    DEVELOPER NOTES
+    ================================================================================
+
+    If you're looking to understand the full calculation flow:
+    → See satprod.js (the working implementation)
+
+    If you're working on this refactored architecture:
+    → Next step: Implement production calculation in satrunner.js
+    → It should use satdata.ITEMS and satdata.RECIPES instead of inline data
+    → Consider extracting calculation logic to separate module
+
     ================================================================================
     END OF DEVELOPER NOTES
     ================================================================================

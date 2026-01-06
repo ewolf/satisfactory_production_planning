@@ -483,6 +483,10 @@ CONSTS.BUILDING2RECIPES = CONSTS.RECIPES.reduce( (acc,val) => {
   return acc;
 }, {} );
 
+/*
+  Setup the production configurations for the line and the world. The world
+  contains parameters set by the user.
+ */
 const setupProdConf = (line,world) => {
   line.tiers = [{}];
 
@@ -491,7 +495,7 @@ const setupProdConf = (line,world) => {
   const needed = {};
   
   const addNeeded = (item,recipe,rate_adjust) => {
-    console.log( `    ${item.name}`);
+//    console.log( `    ${item.name}`);
     let node = needed[item.item_id];
     if (!recipe && !item.is_ore && ((item.name != 'Water' && item.name != 'Nitrogen Gas' && item.name != 'Crude Oil') || ! item.is_resource) ) {
       console.log( '))))))', item, item.recipes,recipe, rate_adjust, '<<<<<' );
@@ -624,25 +628,28 @@ module.exports = {
   setupProdConf,
 };
 
-CONSTS.DEFAULT_RECIPES.forEach( rec => {
-  let name = rec.name;
-  if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
-  if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
-  let line = {
-    name: 'test prod line',
-    targetItems: [CONSTS.NAME2ITEM[name]],
-  };
-  
-//  if (!rec.name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
-//  if (rec.name == 'Cable') {
-//  if (rec.name == 'Dark Matter Residue') {
-//    console.log( '=====', line, rec, '==--==' );
-  if (!name.match(/Rocketu Fuel/)) {
-    setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
-  }
+const TEST = false;
 
-} );
+if (TEST) {
+  CONSTS.DEFAULT_RECIPES.forEach( rec => {
+    let name = rec.name;
+    if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
+    if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
+    let line = {
+      name: 'test prod line',
+      targetItems: [CONSTS.NAME2ITEM[name]],
+    };
+    
+    //  if (!rec.name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
+    //  if (rec.name == 'Cable') {
+    //  if (rec.name == 'Dark Matter Residue') {
+    //    console.log( '=====', line, rec, '==--==' );
+    if (!name.match(/Rocketu Fuel/)) {
+      setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
+    }
 
+  } );
+}
 
 
 

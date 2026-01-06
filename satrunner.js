@@ -24,12 +24,6 @@ function SatisfactoryCalculator() {
     activeLineIdx: 0,
   });
 
-  const world = {
-    name: 'my world',
-    productionLines: [DEFAULT_LINE],
-    activeLineIdx: 0,
-  };
-
   const calculate = () => {
     const line = satdata.setupProdConf(world.productionLines[world.activeLineIdx]);
   };
@@ -63,18 +57,6 @@ function SatisfactoryCalculator() {
         // New format with productionLines
         if (state.productionLines) {
           setProductionLines(state.productionLines);
-        }
-        // Backwards compatibility: migrate old format
-        else if (state.targetItems) {
-          setProductionLines([{
-            id: Date.now().toString(),
-            name: 'Production Line 1',
-            targetItems: state.targetItems || [{ item: 'Heavy Modular Frame', rate: 2 }],
-            results: null,
-            powerShards: state.powerShards || {},
-            resourcePurities: state.resourcePurities || {},
-            isExpanded: true
-          }]);
         }
 
         if (state.selectedBelt) setSelectedBelt(state.selectedBelt);
