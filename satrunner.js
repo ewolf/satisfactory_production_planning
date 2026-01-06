@@ -29,6 +29,7 @@ function SatisfactoryCalculator() {
   const [alternateRecipesExpanded, setAlternateRecipesExpanded] = useState(false);
   const [editingLineId, setEditingLineId] = useState(null);
   const [alternateSearchTerm, setAlternateSearchTerm] = useState('');
+  const [selectedProductionFilter, setSelectedProductionFilter] = useState('elevator');
 
   // Extract constants from CONSTS
   const BELT_TIERS = CONSTS.BELT_TIERS;
@@ -58,11 +59,25 @@ function SatisfactoryCalculator() {
     CONSTS.ITEMS.filter(item => item.is_fluid).map(item => item.name)
   );
 
-  // Get producible items (non-resource items)
-  const producibleItems = CONSTS.ITEMS
-    .filter(item => !item.is_resource)
-    .map(item => item.name)
-    .sort();
+  // Get producible items filtered by production type
+  const getProducibleItems = (filter) => {
+    return CONSTS.ITEMS
+      .filter(item => !item.is_resource)
+      .filter(item => {
+        if (filter === 'all') return true;
+        if (filter === 'elevator') return item.is_elevator;
+
+        // Building type filter
+        // Get default recipe for this item and check building type
+        const recipes = item.get_recipes ? item.get_recipes(world) : [];
+        const defaultRecipe = recipes.find(r => r.isDefault) || recipes[0];
+        return defaultRecipe && defaultRecipe.building === filter;
+      })
+      .map(item => item.name)
+      .sort();
+  };
+
+  const producibleItems = getProducibleItems(selectedProductionFilter);
 
   // Extract BUILDINGS constant
   const BUILDINGS = CONSTS.BUILDINGS;
@@ -275,6 +290,14 @@ function SatisfactoryCalculator() {
   };
 
   const addTargetItem = (lineId) => {
+    // Default to first item in filtered list
+    const firstItem = getProducibleItems(selectedProductionFilter)[0] || 'Iron Plate';
+    const itemId = CONSTS.NAME2ITEM_ID[firstItem];
+    const item = CONSTS.ITEMS[itemId];
+    const recipes = item.get_recipes ? item.get_recipes(world) : [];
+    const defaultRecipe = recipes.find(r => r.isDefault) || recipes[0];
+    const defaultRate = defaultRecipe ? (defaultRecipe.output / defaultRecipe.time) * 60 : 10;
+
     setWorld({
       ...world,
       productionLines: world.productionLines.map(l =>
@@ -283,7 +306,7 @@ function SatisfactoryCalculator() {
               ...l,
               targetItems: [
                 ...l.targetItems,
-                { item_id: CONSTS.NAME2ITEM_ID['Iron Plate'], rate: 10 },
+                { item_id: itemId, rate: defaultRate },
               ],
             }
           : l
@@ -309,6 +332,17 @@ function SatisfactoryCalculator() {
     const itemId = CONSTS.NAME2ITEM_ID[itemName];
     if (itemId === undefined) return;
 
+    // Get default recipe and calculate rate
+    const item = CONSTS.ITEMS[itemId];
+    const recipes = item.get_recipes ? item.get_recipes(world) : [];
+    const defaultRecipe = recipes.find(r => r.isDefault) || recipes[0];
+
+    // Calculate default rate: (output / time) * 60
+    let defaultRate = 10; // fallback
+    if (defaultRecipe && defaultRecipe.time) {
+      defaultRate = (defaultRecipe.output / defaultRecipe.time) * 60;
+    }
+
     setWorld({
       ...world,
       productionLines: world.productionLines.map(l =>
@@ -316,7 +350,7 @@ function SatisfactoryCalculator() {
           ? {
               ...l,
               targetItems: l.targetItems.map((item, idx) =>
-                idx === itemIndex ? { ...item, item_id: itemId } : item
+                idx === itemIndex ? { item_id: itemId, rate: defaultRate } : item
               ),
             }
           : l
@@ -1035,6 +1069,33 @@ function SatisfactoryCalculator() {
                   {/* Production Line Content (shown when expanded) */}
                   {line.isExpanded && (
                     <div className="p-4">
+                      {/* Item Filter */}
+                      <div className="mb-3">
+                        <label className="block text-orange-300 font-semibold mb-2 text-sm">
+                          Item Filter
+                        </label>
+                        <select
+                          value={selectedProductionFilter}
+                          onChange={(e) => setSelectedProductionFilter(e.target.value)}
+                          className="w-full bg-gray-700 text-white rounded px-3 py-2 border-2 border-gray-600 focus:border-orange-500 focus:outline-none text-sm"
+                        >
+                          <option value="elevator">Space Elevator Parts</option>
+                          <option value="all">Everything</option>
+                          <optgroup label="Building Types">
+                            <option value="Constructor">Constructor</option>
+                            <option value="Assembler">Assembler</option>
+                            <option value="Manufacturer">Manufacturer</option>
+                            <option value="Smelter">Smelter</option>
+                            <option value="Foundry">Foundry</option>
+                            <option value="Refinery">Refinery</option>
+                            <option value="Packager">Packager</option>
+                            <option value="Blender">Blender</option>
+                            <option value="Particle Accelerator">Particle Accelerator</option>
+                            <option value="Quantum Encoder">Quantum Encoder</option>
+                          </optgroup>
+                        </select>
+                      </div>
+
                       {/* Target Production */}
                       <div className="mb-4">
                         <div className="flex justify-between items-center mb-3">
