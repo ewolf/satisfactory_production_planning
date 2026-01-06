@@ -511,11 +511,11 @@ const setupProdConf = (line,world) => {
     }
     let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate : item.name == 'Water' ? 120 : 60);
 
+if (item.name == 'Encased Industrial Beam') { console.log( `nBEAM ${(item_name2net_rate[item.name] || 0 )} + ${itemRate}` ); }
     item_name2net_rate[item.name] = (item_name2net_rate[item.name] || 0 ) + itemRate;
-
+if (item.name == 'Encased Industrial Beam') { console.log( `nBEAMNOW ${item_name2net_rate[item.name]}` ); }
     if (node) {
       node.rate = node.rate + itemRate;
-      //        console.log( `    rate now ${node.rate}` );
     } else {
       node = needed[item.item_id]
         = { item: item,
@@ -535,14 +535,18 @@ const setupProdConf = (line,world) => {
         const inp_item = ITEMS[inp.item_id];
         const inp_recipe = inp_item.get_recipes(world)[0];
         const rate = rate_adjust * inp.rate;
+if (inp_item.name == 'Encased Industrial Beam') { console.log( `BEAM ${(item_name2net_rate[inp_item.name] || 0 )} - ${rate} (${recipe.name})` ); }
         item_name2net_rate[inp_item.name] = (item_name2net_rate[inp_item.name] || 0 ) - rate
-        if (inp_recipe && ! inp_item.is_ore) {
-          const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
-          const inp_rate_adjust = rate / inp_recip_output_rate;
-          addNeeded(inp_item, inp_recipe, inp_rate_adjust);
-        } else {
-          const extract_rate_adj = rate / (inp_item.name == 'Water' ? 120 : 60);
-          addNeeded(inp_item, null, extract_rate_adj);
+if (inp_item.name == 'Encased Industrial Beam') { console.log( `BEAMNOW ${item_name2net_rate[inp_item.name]}` ); }
+        if (item_name2net_rate[inp_item.name] < 0) {
+          if (inp_recipe && ! inp_item.is_ore) {
+            const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
+            const inp_rate_adjust = rate / inp_recip_output_rate;
+            addNeeded(inp_item, inp_recipe, inp_rate_adjust);
+          } else {
+            const extract_rate_adj = rate / (inp_item.name == 'Water' ? 120 : 60);
+            addNeeded(inp_item, null, extract_rate_adj);
+          }
         }
       });
 
@@ -681,9 +685,37 @@ let print_prodline = line => {
   });
 }
 
+const CHECK_ALL_RECIPES = false;
 const TEST = true;
 
 if (TEST) {
+  const world = {
+    name:'test world',
+    selectedBelt: 'Mk.3',
+    selectedPipe: 'Mk.1',
+    selectedMiner: 'Miner Mk.2',
+    selectedAlternatives: {},
+    selectedAlternatives: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ),
+  };
+
+  let items = {};
+  ['Uranium Waste', 'Encased Industrial Beam'  ]
+    .map( n => CONSTS.NAME2ITEM[n] )
+    .forEach( it => {
+console.log( it.get_recipes(world)[0].outputs, it );
+      const rate = it.get_recipes(world)[0].outputs.filter(o => o.item_id == it.item_id)[0].rate;
+      items[it.item_id] = rate;
+    });
+  let line = {
+    name: 'test prod line',
+    targetItems: items,
+  };
+  setupProdConf( line, world );
+  print_prodline( line );
+  console.log( line.item_name2net_rate );
+}
+
+if (CHECK_ALL_RECIPES) {
   const world = {
     name:'test world',
     selectedBelt: 'Mk.1',
