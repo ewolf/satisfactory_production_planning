@@ -15,13 +15,72 @@ function SatisfactoryCalculator() {
     isExpanded: true
   };
 
-  satdata.setupProdConf(DEFAULT_LINE);
-
   const [world, setWorld] = useState({
     name: 'my world',
     productionLines: [DEFAULT_LINE],
     activeLineIdx: 0,
   });
+
+  // UI state for global settings
+  const [selectedBelt, setSelectedBelt] = useState('Mk.1');
+  const [selectedPipe, setSelectedPipe] = useState('Mk.1');
+  const [selectedMiner, setSelectedMiner] = useState('Miner Mk.3');
+  const [selectedAlternates, setSelectedAlternates] = useState([]);
+  const [alternateRecipesExpanded, setAlternateRecipesExpanded] = useState(false);
+  const [editingLineId, setEditingLineId] = useState(null);
+  const [alternateSearchTerm, setAlternateSearchTerm] = useState('');
+
+  // Extract constants from CONSTS
+  const BELT_TIERS = CONSTS.BELT_TIERS;
+  const PIPE_TIERS = CONSTS.PIPE_TIERS;
+
+  // Miner tiers (from BUILDINGS data)
+  const MINER_TIERS = {
+    'Miner Mk.1': { base: 60, power: 5 },
+    'Miner Mk.2': { base: 120, power: 12 },
+    'Miner Mk.3': { base: 240, power: 30 },
+  };
+
+  // Create ALTERNATE_RECIPES object from ALT_RECIPES array
+  const ALTERNATE_RECIPES = CONSTS.ALT_RECIPES.reduce((acc, recipe) => {
+    acc[recipe.name] = recipe;
+    return acc;
+  }, {});
+
+  // Create DEFAULT_RECIPES object
+  const DEFAULT_RECIPES = CONSTS.DEFAULT_RECIPES.reduce((acc, recipe) => {
+    acc[recipe.name] = recipe;
+    return acc;
+  }, {});
+
+  // Create FLUID_ITEMS set for quick lookup
+  const FLUID_ITEMS = new Set(
+    CONSTS.ITEMS.filter(item => item.is_fluid).map(item => item.name)
+  );
+
+  // Get producible items (non-resource items)
+  const producibleItems = CONSTS.ITEMS
+    .filter(item => !item.is_resource)
+    .map(item => item.name)
+    .sort();
+
+  // Extract BUILDINGS constant
+  const BUILDINGS = CONSTS.BUILDINGS;
+
+  // Create RECIPES lookup by name (for easier access)
+  const RECIPES = CONSTS.RECIPES.reduce((acc, recipe) => {
+    acc[recipe.name] = recipe;
+    return acc;
+  }, {});
+
+  // Helper function to get clock speed from shard count
+  const getClockSpeed = (shards) => {
+    if (shards === 0) return 100;
+    if (shards === 1) return 150;
+    if (shards === 2) return 200;
+    if (shards === 3) return 250;
+    return 100;
+  };
 
   const calculate = () => {
     const lineIdx = world.activeLineIdx;
@@ -52,16 +111,10 @@ function SatisfactoryCalculator() {
     });
   };
 
-  // reality -> world + calcualted state
-  const [reality, setReality] = useState({
-    world,
-    calculated: calculate(),
-  });
-
   // Save state to localStorage
   const saveToLocalStorage = () => {
     const state = {
-      productionLines,
+      productionLines: world.productionLines,
       selectedBelt,
       selectedPipe,
       selectedMiner,
@@ -80,7 +133,10 @@ function SatisfactoryCalculator() {
 
         // New format with productionLines
         if (state.productionLines) {
-          setProductionLines(state.productionLines);
+          setWorld({
+            ...world,
+            productionLines: state.productionLines,
+          });
         }
 
         if (state.selectedBelt) setSelectedBelt(state.selectedBelt);
@@ -93,6 +149,220 @@ function SatisfactoryCalculator() {
       console.error('Error loading from localStorage:', error);
     }
     return false;
+  };
+
+  // Export data to JSON file
+  const exportToFile = () => {
+    const dataStr = JSON.stringify({
+      productionLines: world.productionLines,
+      name: world.name,
+    }, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `satisfactory-production-${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Import data from JSON file
+  const importFromFile = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (imported.productionLines) {
+          setWorld({
+            ...world,
+            productionLines: imported.productionLines,
+            name: imported.name || world.name,
+          });
+        }
+      } catch (error) {
+        console.error('Error importing file:', error);
+        alert('Failed to import file. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Clear all data
+  const clearAllData = () => {
+    if (confirm('Are you sure you want to clear all production lines? This cannot be undone.')) {
+      setWorld({
+        name: 'my world',
+        productionLines: [DEFAULT_LINE],
+        activeLineIdx: 0,
+      });
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  // Production line management functions
+  const addProductionLine = () => {
+    const newLine = {
+      id: Date.now(),
+      name: `Production Line ${world.productionLines.length + 1}`,
+      targetItems: [{ item_id: CONSTS.NAME2ITEM_ID['Iron Plate'], rate: 10 }],
+      isExpanded: true,
+    };
+    setWorld({
+      ...world,
+      productionLines: [...world.productionLines, newLine],
+    });
+  };
+
+  const duplicateProductionLine = (lineId) => {
+    const lineToDuplicate = world.productionLines.find(l => l.id === lineId);
+    if (!lineToDuplicate) return;
+
+    const newLine = {
+      ...lineToDuplicate,
+      id: Date.now(),
+      name: `${lineToDuplicate.name} (Copy)`,
+      tiers: undefined, // Clear calculated tiers
+      results: undefined, // Clear results
+    };
+    setWorld({
+      ...world,
+      productionLines: [...world.productionLines, newLine],
+    });
+  };
+
+  const deleteProductionLine = (lineId) => {
+    if (world.productionLines.length <= 1) {
+      alert('Cannot delete the last production line.');
+      return;
+    }
+    if (confirm('Are you sure you want to delete this production line?')) {
+      setWorld({
+        ...world,
+        productionLines: world.productionLines.filter(l => l.id !== lineId),
+        activeLineIdx: Math.min(world.activeLineIdx, world.productionLines.length - 2),
+      });
+    }
+  };
+
+  const toggleLineExpanded = (lineId) => {
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId ? { ...l, isExpanded: !l.isExpanded } : l
+      ),
+    });
+  };
+
+  const startEditingName = (lineId) => {
+    setEditingLineId(lineId);
+  };
+
+  const updateLineName = (lineId, newName) => {
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId ? { ...l, name: newName } : l
+      ),
+    });
+    setEditingLineId(null);
+  };
+
+  const cancelEditingName = () => {
+    setEditingLineId(null);
+  };
+
+  const addTargetItem = (lineId) => {
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              targetItems: [
+                ...l.targetItems,
+                { item_id: CONSTS.NAME2ITEM_ID['Iron Plate'], rate: 10 },
+              ],
+            }
+          : l
+      ),
+    });
+  };
+
+  const removeTargetItem = (lineId, itemIndex) => {
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              targetItems: l.targetItems.filter((_, idx) => idx !== itemIndex),
+            }
+          : l
+      ),
+    });
+  };
+
+  const handleTargetItemChange = (lineId, itemIndex, itemName) => {
+    const itemId = CONSTS.NAME2ITEM_ID[itemName];
+    if (itemId === undefined) return;
+
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              targetItems: l.targetItems.map((item, idx) =>
+                idx === itemIndex ? { ...item, item_id: itemId } : item
+              ),
+            }
+          : l
+      ),
+    });
+  };
+
+  const handleTargetRateChange = (lineId, itemIndex, newRate) => {
+    const rate = parseFloat(newRate) || 0;
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              targetItems: l.targetItems.map((item, idx) =>
+                idx === itemIndex ? { ...item, rate } : item
+              ),
+            }
+          : l
+      ),
+    });
+  };
+
+  // Alternate recipe management
+  const addAlternateRecipe = (altName) => {
+    setSelectedAlternates([...selectedAlternates, altName]);
+  };
+
+  const removeAlternateRecipe = (altName) => {
+    setSelectedAlternates(selectedAlternates.filter(name => name !== altName));
+  };
+
+  // Handler for purity changes (for miners/extractors)
+  const handlePurityChange = (lineId, itemName, purity) => {
+    // This would need to update the production line's purity settings
+    // For now, this is a placeholder
+    console.log(`Purity changed for ${itemName} to ${purity} in line ${lineId}`);
+  };
+
+  // Handler for power shard changes
+  const handleShardChange = (lineId, key, shardCount) => {
+    const shards = parseInt(shardCount) || 0;
+    // This would need to update the production line's shard settings
+    // For now, this is a placeholder
+    console.log(`Shards changed for ${key} to ${shards} in line ${lineId}`);
   };
 
   return (
@@ -370,13 +640,13 @@ function SatisfactoryCalculator() {
 
                     <button
                       onClick={() => deleteProductionLine(line.id)}
-                      disabled={productionLines.length <= 1}
+                      disabled={world.productionLines.length <= 1}
                       className={`${
-                        productionLines.length <= 1
+                        world.productionLines.length <= 1
                           ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                           : 'bg-red-600 hover:bg-red-700 text-white'
                       } font-bold py-1 px-3 rounded transition-colors duration-200`}
-                      title={productionLines.length <= 1 ? 'Cannot delete last line' : 'Delete this production line'}
+                      title={world.productionLines.length <= 1 ? 'Cannot delete last line' : 'Delete this production line'}
                     >
                       ✕
                     </button>
@@ -405,7 +675,7 @@ function SatisfactoryCalculator() {
                                   Item {line.targetItems.length > 1 ? `#${index + 1}` : ''}
                                 </label>
                                 <select
-                                  value={target.item}
+                                  value={CONSTS.ITEMS[target.item_id]?.name || ''}
                                   onChange={(e) => handleTargetItemChange(line.id, index, e.target.value)}
                                   className="w-full bg-gray-700 text-white rounded px-3 py-2 border-2 border-gray-600 focus:border-orange-500 focus:outline-none text-sm"
                                 >
