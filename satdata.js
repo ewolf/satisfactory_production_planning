@@ -16,146 +16,147 @@ const CONSTS = {
 
   // Building power consumption data (array format)
   BUILDINGS: [
-    { id: 0, name: 'Assembler', power: 15 },
-    { id: 1, name: 'Blender', power: 75 },
-    { id: 2, name: 'Constructor', power: 4 },
-    { id: 3, name: 'Foundry', power: 16 },
-    { id: 4, name: 'Manufacturer', power: 55 },
-    { id: 5, name: 'Miner Mk.1', power: 5, base: 60 },
-    { id: 6, name: 'Miner Mk.2', power: 12, base: 120 },
-    { id: 7, name: 'Miner Mk.3', power: 30, base: 240 },
-    { id: 8, name: 'Oil Extractor', power: 40 },
-    { id: 9, name: 'Particle Accelerator', power: 500 },
-    { id: 10, name: 'Quantum Encoder', power: 1000 },
-    { id: 11, name: 'Refinery', power: 30 },
-    { id: 12, name: 'Resource Well Extractor', power: 0 },
-    { id: 13, name: 'Smelter', power: 4 },
-    { id: 14, name: 'Water Extractor', power: 20 }
+    { building_id: 0, name: 'Assembler', power: 15 },
+    { building_id: 1, name: 'Blender', power: 75 },
+    { building_id: 2, name: 'Constructor', power: 4 },
+    { building_id: 3, name: 'Foundry', power: 16 },
+    { building_id: 4, name: 'Manufacturer', power: 55 },
+    { building_id: 5, name: 'Miner Mk.1', power: 5, base: 60 },
+    { building_id: 6, name: 'Miner Mk.2', power: 12, base: 120 },
+    { building_id: 7, name: 'Miner Mk.3', power: 30, base: 240 },
+    { building_id: 8, name: 'Oil Extractor', power: 40 },
+    { building_id: 9, name: 'Particle Accelerator', power: 500 },
+    { building_id: 10, name: 'Quantum Encoder', power: 1000 },
+    { building_id: 11, name: 'Refinery', power: 30 },
+    { building_id: 12, name: 'Resource Well Extractor', power: 0 },
+    { building_id: 13, name: 'Smelter', power: 4 },
+    { building_id: 14, name: 'Water Extractor', power: 20 }
   ],
 
 // All items (auto-generated from recipes)
   ITEMS: [
     // Resources - Ores (indices 0-9)
-    { id: 0, name: "Iron Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 1, name: "Copper Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 2, name: "Limestone", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 3, name: "Coal", is_fluid: false, is_ore: true, is_resource: true, is_fuel: true },
-    { id: 4, name: "Caterium Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 5, name: "Raw Quartz", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 6, name: "Sulfur", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 7, name: "Bauxite", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 8, name: "Uranium", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
-    { id: 9, name: "SAM", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 0, name: "Iron Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 1, name: "Copper Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 2, name: "Limestone", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 3, name: "Coal", is_fluid: false, is_ore: true, is_resource: true, is_fuel: true },
+    { item_id: 4, name: "Caterium Ore", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 5, name: "Raw Quartz", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 6, name: "Sulfur", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 7, name: "Bauxite", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 8, name: "Uranium", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
+    { item_id: 9, name: "SAM", is_fluid: false, is_ore: true, is_resource: true, is_fuel: false },
 
     // Resources - Fluids (indices 10-12)
-    { id: 10, name: "Water", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
-    { id: 11, name: "Crude Oil", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
-    { id: 12, name: "Nitrogen Gas", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+    { item_id: 10, name: "Water", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+    { item_id: 11, name: "Crude Oil", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
+    { item_id: 12, name: "Nitrogen Gas", is_fluid: true, is_ore: false, is_resource: true, is_fuel: false },
 
     // Biomass Fuels (indices 13-17)
-    { id: 13, name: "Leaves", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 14, name: "Wood", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 15, name: "Biomass", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 16, name: "Solid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 17, name: "Packaged Liquid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 13, name: "Leaves", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 14, name: "Wood", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 15, name: "Biomass", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 16, name: "Solid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 17, name: "Packaged Liquid Biofuel", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
 
     // Intermediate Fluids (indices 18-27)
-    { id: 18, name: "Heavy Oil Residue", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 19, name: "Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 20, name: "Liquid Biofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 21, name: "Turbofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 22, name: "Alumina Solution", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 23, name: "Sulfuric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 24, name: "Nitric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 25, name: "Dissolved Silica", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 26, name: "Rocket Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 27, name: "Ionized Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 18, name: "Heavy Oil Residue", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 19, name: "Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 20, name: "Liquid Biofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 21, name: "Turbofuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 22, name: "Alumina Solution", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 23, name: "Sulfuric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 24, name: "Nitric Acid", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 25, name: "Dissolved Silica", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 26, name: "Rocket Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 27, name: "Ionized Fuel", is_fluid: true, is_ore: false, is_resource: false, is_fuel: true },
 
     // Basic Ingots (indices 28-32)
-    { id: 28, name: "Iron Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 29, name: "Copper Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 30, name: "Steel Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 31, name: "Caterium Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 32, name: "Aluminum Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 28, name: "Iron Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 29, name: "Copper Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 30, name: "Steel Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 31, name: "Caterium Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 32, name: "Aluminum Ingot", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
 
     // Basic Components (indices 33-52)
-    { id: 33, name: "Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 34, name: "Iron Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 35, name: "Screw", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 36, name: "Reinforced Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 37, name: "Concrete", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 38, name: "Steel Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 39, name: "Steel Pipe", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 40, name: "Wire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 41, name: "Cable", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 42, name: "Copper Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 43, name: "Quartz Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 44, name: "Silica", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 45, name: "Quickwire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 46, name: "Aluminum Casing", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 47, name: "Petroleum Coke", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 48, name: "Plastic", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 49, name: "Rubber", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 50, name: "Polymer Resin", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 51, name: "Compacted Coal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 52, name: "Aluminum Scrap", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 33, name: "Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 34, name: "Iron Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 35, name: "Screw", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 36, name: "Reinforced Iron Plate", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 37, name: "Concrete", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 38, name: "Steel Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 39, name: "Steel Pipe", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 40, name: "Wire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 41, name: "Cable", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 42, name: "Copper Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 43, name: "Quartz Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 44, name: "Silica", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 45, name: "Quickwire", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 46, name: "Aluminum Casing", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 47, name: "Petroleum Coke", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 48, name: "Plastic", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 49, name: "Rubber", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 50, name: "Polymer Resin", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 51, name: "Compacted Coal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 52, name: "Aluminum Scrap", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
 
     // Advanced Components (indices 53-60)
-    { id: 53, name: "Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 54, name: "Encased Industrial Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 55, name: "Heavy Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 56, name: "Rotor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 57, name: "Stator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 58, name: "Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 59, name: "Circuit Board", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 60, name: "Computer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 61, name: "Uranium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 53, name: "Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 54, name: "Encased Industrial Beam", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 55, name: "Heavy Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 56, name: "Rotor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 57, name: "Stator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 58, name: "Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 59, name: "Circuit Board", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 60, name: "Computer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 61, name: "Uranium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
 
     // Advanced Components - Continued (indices 62-88)
-    { id: 62, name: "AI Limiter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 63, name: "Electromagnetic Control Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 64, name: "Alclad Aluminum Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 65, name: "Versatile Framework", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 66, name: "Automated Wiring", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 67, name: "Heat Sink", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 68, name: "Empty Canister", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 69, name: "High-Speed Connector", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 70, name: "Crystal Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 71, name: "Supercomputer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 72, name: "Battery", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 73, name: "Adaptive Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 74, name: "Radio Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 75, name: "Turbo Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 76, name: "Cooling System", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 77, name: "Gas Filter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 78, name: "Fused Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 79, name: "Encased Uranium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 80, name: "Magnetic Field Generator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 81, name: "Nuclear Pasta", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 82, name: "Neural-Quantum Processor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 83, name: "Superposition Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 84, name: "AI Expansion Server", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 85, name: "Alien Power Matrix", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 86, name: "Ficsonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
-    { id: 87, name: "Synthetic Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 62, name: "AI Limiter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 63, name: "Electromagnetic Control Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 64, name: "Alclad Aluminum Sheet", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 65, name: "Versatile Framework", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 66, name: "Automated Wiring", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 67, name: "Heat Sink", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 68, name: "Empty Canister", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 69, name: "High-Speed Connector", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 70, name: "Crystal Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 71, name: "Supercomputer", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 72, name: "Battery", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 73, name: "Adaptive Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 74, name: "Radio Control Unit", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 75, name: "Turbo Motor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 76, name: "Cooling System", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 77, name: "Gas Filter", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 78, name: "Fused Modular Frame", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 79, name: "Encased Uranium Cell", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 80, name: "Magnetic Field Generator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 81, name: "Nuclear Pasta", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 82, name: "Neural-Quantum Processor", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 83, name: "Superposition Oscillator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 84, name: "AI Expansion Server", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 85, name: "Alien Power Matrix", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 86, name: "Ficsonium Fuel Rod", is_fluid: false, is_ore: false, is_resource: false, is_fuel: true },
+    { item_id: 87, name: "Synthetic Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
 
     // Late-Game Resources (indices 89-98)
-    { id: 88, name: "Copper Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 89, name: "Pressure Conversion Cube", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 90, name: "Excited Photonic Matter", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 91, name: "SAM Fluctuator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 92, name: "Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 93, name: "Ficsonium", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 94, name: "Ficsite Trigon", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 95, name: "Time Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 96, name: "Dark Matter Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 97, name: "Dark Matter Residue", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
-    { id: 98, name: "Fabric", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 88, name: "Copper Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 89, name: "Pressure Conversion Cube", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 90, name: "Excited Photonic Matter", is_fluid: true, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 91, name: "SAM Fluctuator", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 92, name: "Power Shard", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 93, name: "Ficsonium", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 94, name: "Ficsite Trigon", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 95, name: "Time Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 96, name: "Dark Matter Crystal", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 97, name: "Dark Matter Residue", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 98, name: "Fabric", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
 
     // Shit it missed
-    { id: 99, name: "Smart Plating", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 99, name: "Smart Plating", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 100, name: "Black Powder", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
+    { item_id: 101, name: "Modular Engine", is_fluid: false, is_ore: false, is_resource: false, is_fuel: false },
   ],
-
   RECIPES: [
 
     // Smelter recipes
@@ -195,10 +196,10 @@ const CONSTS = {
     {"id":27,"name":"Heat Sink","building":"Assembler","time":8,"inputs":[{"item_id":64,"amount":5,"rate":37.5},{"item_id":42,"amount":3,"rate":22.5}],"output":1,"isDefault":true,"outputs":[{"item_id":67,"rate":7.5,"output":1}],"item":67},
     {"id":28,"name":"Alclad Aluminum Sheet","building":"Assembler","time":6,"inputs":[{"item_id":32,"amount":3,"rate":30},{"item_id":29,"amount":1,"rate":10}],"output":3,"isDefault":true,"outputs":[{"item_id":64,"rate":30,"output":3}],"item":64},
     {"id":29,"name":"Electromagnetic Control Rod","building":"Assembler","time":30,"inputs":[{"item_id":57,"amount":3,"rate":6},{"item_id":62,"amount":2,"rate":4}],"output":2,"isDefault":true,"outputs":[{"item_id":63,"rate":4,"output":2}],"item":63},
-    {"id":30,"name":"Smart Plating","building":"Assembler","time":30,"inputs":[{"item_id":36,"amount":1,"rate":2},{"item_id":56,"amount":1,"rate":2}],"output":1,"isDefault":true,"outputs":[{"rate":2,"item_id":99,"output":1}]},
+    {"id":30,"name":"Smart Plating","building":"Assembler","time":30,"inputs":[{"item_id":36,"amount":1,"rate":2},{"item_id":56,"amount":1,"rate":2}],"output":1,"isDefault":true,"outputs":[{"object_id": 99, "rate":2,"item_id":99,"output":1}]},
     {"id":31,"name":"Versatile Framework","building":"Assembler","time":24,"inputs":[{"item_id":53,"amount":1,"rate":2.5},{"item_id":38,"amount":12,"rate":30}],"output":2,"isDefault":true,"outputs":[{"item_id":65,"rate":5,"output":2}],"item":65},
     {"id":32,"name":"Automated Wiring","building":"Assembler","time":24,"inputs":[{"item_id":57,"amount":1,"rate":2.5},{"item_id":41,"amount":20,"rate":50}],"output":1,"isDefault":true,"outputs":[{"item_id":66,"rate":2.5,"output":1}],"item":66},
-    {"id":33,"name":"Black Powder","building":"Assembler","time":4,"inputs":[{"item_id":3,"amount":1,"rate":15},{"item_id":6,"amount":1,"rate":15}],"output":2,"isDefault":true,"outputs":[{"rate":30,"output":2}]},
+    {"id":33,"name":"Black Powder","building":"Assembler","time":4,"inputs":[{"item_id":3,"amount":1,"rate":15},{"item_id":6,"amount":1,"rate":15}],"output":2,"isDefault":true,"outputs":[{"item_id": 100, "rate":30,"output":2}]},
     {"id":34,"name":"Magnetic Field Generator","building":"Assembler","time":120,"inputs":[{"item_id":65,"amount":5,"rate":2.5},{"item_id":63,"amount":2,"rate":1}],"output":2,"isDefault":true,"outputs":[{"item_id":80,"rate":1,"output":2}],"item":80},
 
     // Refinery recipes
@@ -217,7 +218,7 @@ const CONSTS = {
     {"id":45,"name":"High-Speed Connector","building":"Manufacturer","time":16,"inputs":[{"item_id":45,"amount":56,"rate":210},{"item_id":41,"amount":10,"rate":37.5},{"item_id":59,"amount":1,"rate":3.75}],"output":1,"isDefault":true,"outputs":[{"item_id":69,"rate":3.75,"output":1}],"item":69},
     {"id":46,"name":"Crystal Oscillator","building":"Manufacturer","time":120,"inputs":[{"item_id":43,"amount":36,"rate":18},{"item_id":41,"amount":28,"rate":14},{"item_id":36,"amount":5,"rate":2.5}],"output":2,"isDefault":true,"outputs":[{"item_id":70,"rate":1,"output":2}],"item":70},
     {"id":47,"name":"Adaptive Control Unit","building":"Manufacturer","time":120,"inputs":[{"item_id":66,"amount":15,"rate":7.5},{"item_id":59,"amount":10,"rate":5},{"item_id":55,"amount":2,"rate":1},{"item_id":60,"amount":2,"rate":1}],"output":2,"isDefault":true,"outputs":[{"item_id":73,"rate":1,"output":2}],"item":73},
-    {"id":48,"name":"Modular Engine","building":"Manufacturer","time":60,"inputs":[{"item_id":58,"amount":2,"rate":2},{"item_id":49,"amount":15,"rate":15},{"amount":2,"rate":2}],"output":1,"isDefault":true,"outputs":[{"rate":1,"output":1}]},
+    {"id":48,"name":"Modular Engine","building":"Manufacturer","time":60,"inputs":[{"item_id":58,"amount":2,"rate":2},{"item_id":49,"amount":15,"rate":15},{"item_id":99, "amount":2,"rate":2}],"output":1,"isDefault":true,"outputs":[{"item_id":101,"rate":1,"output":1}]},
     {"id":49,"name":"Radio Control Unit","building":"Manufacturer","time":48,"inputs":[{"item_id":46,"amount":32,"rate":40},{"item_id":70,"amount":1,"rate":1.25},{"item_id":60,"amount":1,"rate":1.25}],"output":2,"isDefault":true,"outputs":[{"item_id":74,"rate":2.5,"output":2}],"item":74},
     {"id":50,"name":"Turbo Motor","building":"Manufacturer","time":32,"inputs":[{"item_id":76,"amount":4,"rate":7.5},{"item_id":74,"amount":2,"rate":3.75},{"item_id":58,"amount":4,"rate":7.5},{"item_id":49,"amount":24,"rate":45}],"output":1,"isDefault":true,"outputs":[{"item_id":75,"rate":1.875,"output":1}],"item":75},
     {"id":51,"name":"Gas Filter","building":"Manufacturer","time":8,"inputs":[{"item_id":3,"amount":5,"rate":37.5},{"item_id":49,"amount":2,"rate":15},{"item_id":98,"amount":2,"rate":15}],"output":1,"isDefault":true,"outputs":[{"item_id":77,"rate":7.5,"output":1}],"item":77},
@@ -336,7 +337,7 @@ const CONSTS = {
 };
 
 CONSTS.NAME2ITEM_ID = CONSTS.ITEMS.reduce( (acc,val) => {
-  acc[val.name] = val.id;
+  acc[val.name] = val.item_id;
   return acc;
 }, {} );
 
@@ -363,7 +364,7 @@ CONSTS.DEF2RECIPE = CONSTS.DEFAULT_RECIPES.reduce( (acc,val) => {
 }, {});
 
 CONSTS.BUILDING2IDS = CONSTS.BUILDINGS.reduce( (acc,val) => {
-  acc[val.name] = val.id;
+  acc[val.name] = val.building_id;
   return acc;
 }, {});
 
@@ -386,16 +387,14 @@ const setupProdConf = (line,world) => {
   const needed = {};
   
   const addNeeded = (item,recipe,rate_adjust) => {
-    let node = needed[item.id];
-    let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.id )[0].rate : item.name == 'Water' ? 120 : 60);
-    // if (!recipe) { console.log( ` --> ${rate_adjust} * 60` ) }
-    //      console.log( `adding node ${item.name} (${item.id}) @ ${itemRate}` );
+    let node = needed[item.item_id];
+    let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate : item.name == 'Water' ? 120 : 60);
 
     if (node) {
       node.rate = node.rate + itemRate;
       //        console.log( `    rate now ${node.rate}` );
     } else {
-      node = needed[item.id]
+      node = needed[item.item_id]
         = { item: item,
             rate: itemRate,
             tier_idx: 0,
@@ -439,13 +438,13 @@ const setupProdConf = (line,world) => {
     const item = node.item;
 
     if (recipe) {
-      const recipe_output_rate = recipe.outputs.filter( op => op.item_id == item.id )[0].rate;
+      const recipe_output_rate = recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate;
       node.machines = Math.ceil( node.rate / recipe_output_rate );
       node.clocking =  node.rate / (node.machines * recipe_output_rate);
       recipe.inputs.forEach( inp => {
         const inp_node = needed[inp.item_id];
-        node.supplied_by_nodes[inp_node.item.id] = inp_node;
-        inp_node.supplies_nodes[node.item.id] = node;
+        node.supplied_by_nodes[inp_node.item.item_id] = inp_node;
+        inp_node.supplies_nodes[node.item.item_id] = node;
       } );
 
     } else if(node.item.is_ore) {
@@ -478,16 +477,16 @@ const setupProdConf = (line,world) => {
       tier = tiers[tier_idx] = {};
     }
     const node = needed[item_id];
-    console.log( `checking ${ITEMS[item_id].name} ${tier_idx} > ${node.tier_idx}` );
+    //console.log( `checking ${ITEMS[item_id].name} ${tier_idx} > ${node.tier_idx}` );
     if (tier_idx >= node.tier_idx) {
-      console.log( `removing ${ITEMS[item_id].name} FROM tier ${node.tier_idx}` );
+      //console.log( `removing ${ITEMS[item_id].name} FROM tier ${node.tier_idx}` );
       delete tiers[node.tier_idx][item_id];
 
       node.tier_idx = tier_idx;
       tier[item_id] = node;
       node.tier = tier;
 
-      console.log( `adding ${ITEMS[item_id].name} TO tier ${tier_idx}` );
+      //console.log( `adding ${ITEMS[item_id].name} TO tier ${tier_idx}` );
     }
     Object.keys( node.supplied_by_nodes ).forEach( iid => updateTier(iid,tier_idx+1) );
   };
@@ -508,6 +507,14 @@ module.exports = {
   setupProdConf,
 };
 
+CONSTS.DEFAULT_RECIPES.forEach( rec => {
+  let line = {
+    name: 'test prod line',
+    targetItems: [CONSTS.NAME2ITEM[rec.name]],
+  };
+  console.log( line, rec );
+  setupProdConf( line );
+} );
 // ----------------------------------------------------------------------
 
 
@@ -518,7 +525,7 @@ module.exports = {
 
 /*
 let name2id = ITEMS.reduce( (acc,val) => {
- acc[val.name] = val.id;
+ acc[val.name] = val.item_id;
  return acc;
 }, {} );
 //console.log(name2id);
