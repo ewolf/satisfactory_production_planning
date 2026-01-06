@@ -559,14 +559,17 @@ const setupProdConf = (line,world) => {
     }
   };
 
-  Object.keys(line.targetItems).forEach( item_id => {
-    const targRate = line.targetItems[item_id];
+  line.targetItems.forEach( targ => {
+    const item_id = targ.item_id;
+    const targRate = targ.rate;
     const targItem = ITEMS[item_id];
 
     const recipe = targItem.get_recipes(world)[0];
-    const inp_output_rate = recipe.outputs.filter( op => op.item_id == item_id )[0].rate;
-    const rate_adjust = targRate / inp_output_rate;
-    addNeeded( targItem, recipe, rate_adjust );
+    if (recipe) {
+      const inp_output_rate = recipe.outputs.filter( op => op.item_id == item_id )[0].rate;
+      const rate_adjust = targRate / inp_output_rate;
+      addNeeded( targItem, recipe, rate_adjust );
+    }
   });
 
   // find building_count, clocking, supplied_by_nodes, supplies_nodes
@@ -628,9 +631,8 @@ const setupProdConf = (line,world) => {
     }
     Object.keys( node.supplied_by_nodes ).forEach( iid => updateTier(iid,tier_idx+1) );
   };
-
-  Object.keys(line.targetItems).forEach( item_id => {
-    updateTier( item_id, 0 );
+  line.targetItems.forEach( targ => {
+    updateTier( targ.item_id, 0 );
   });
 
 //  console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ), "TIERS");
@@ -692,13 +694,13 @@ if (TEST) {
     selectedAlternatives: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ),
   };
 
-  let items = {};
+  let items = [];
   ['Heavy Modular Frame', 'Encased Industrial Beam'  ]
     .map( n => CONSTS.NAME2ITEM[n] )
     .forEach( it => {
       let rate = it.get_recipes(world)[0].outputs.filter(o => o.item_id == it.item_id)[0].rate;
       if (it.name == 'Encased Industrial Beam' ) { console.log( rate = 4 ) }
-      items[it.item_id] = rate;
+      items.push( { item_id: it.item_id,rate: rate } );
     });
   let line = {
     name: 'test prod line',
@@ -725,8 +727,8 @@ if (CHECK_ALL_RECIPES) {
     if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
     const item = CONSTS.NAME2ITEM[name];
     const rate = rec.outputs.filter(o => o.item_id==item.item_id)[0].rate;
-    const items = {};
-    items[item.item_id] = rate;
+    const items = [{item_id:item.item_id, rate: rate}];
+
     let line = {
       name: 'test prod line',
       targetItems: items,
@@ -740,8 +742,7 @@ if (CHECK_ALL_RECIPES) {
 
     const item = CONSTS.NAME2ITEM[rec.replaces];
     const rate = rec.outputs.filter(o => o.item_id==item.item_id)[0].rate;
-    const items = {};
-    items[item.item_id] = rate;
+    const items = [{item_id:item.item_id, rate: rate}];
     let line = {
       name: 'test prod line',
       targetItems: items,

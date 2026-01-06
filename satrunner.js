@@ -12,7 +12,8 @@ function SatisfactoryCalculator() {
   const DEFAULT_LINE = {
     name: 'Production Line 1',
     targetItems: [{ item_id: CONSTS.NAME2ITEM_ID['Smart Plating'], rate: 2 }],
-    isExpanded: true
+    isExpanded: true,
+    builtProdConfs: {} // Track which production configurations have been built
   };
 
   const DEFAULT_WORLD = {
@@ -88,6 +89,25 @@ function SatisfactoryCalculator() {
   // Extract BUILDINGS constant
   const BUILDINGS = CONSTS.BUILDINGS;
   const BUILDING2IDS = CONSTS.BUILDING2IDS;
+
+  // Building tech level order (higher number = more advanced)
+  const BUILDING_TECH_ORDER = {
+    'Quantum Encoder': 13,
+    'Particle Accelerator': 12,
+    'Converter': 11,
+    'Blender': 10,
+    'Manufacturer': 9,
+    'Packager': 8,
+    'Assembler': 7,
+    'Refinery': 6,
+    'Foundry': 5,
+    'Constructor': 4,
+    'Smelter': 3,
+    'Miner Mk.3': 2,
+    'Miner Mk.2': 1,
+    'Miner Mk.1': 0,
+    'Water Extractor': -1,
+  };
 
   // Create RECIPES lookup by name (for easier access)
   const RECIPES = CONSTS.RECIPES.reduce((acc, recipe) => {
@@ -196,6 +216,15 @@ function SatisfactoryCalculator() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(world));
   };
 
+  // Auto-save to localStorage whenever world state changes
+  useEffect(() => {
+    saveToLocalStorage();
+  }, [world]);
+
+  // Load from localStorage on initial mount
+  useEffect(() => {
+    loadFromLocalStorage();
+  }, []);
 
   // Load state from localStorage
   const loadFromLocalStorage = () => {
@@ -263,6 +292,7 @@ function SatisfactoryCalculator() {
       name: `Production Line ${world.productionLines.length + 1}`,
       targetItems: [{ item_id: CONSTS.NAME2ITEM_ID['Iron Plate'], rate: 10 }],
       isExpanded: true,
+      builtProdConfs: {},
     };
     setWorld({
       ...world,
@@ -436,6 +466,119 @@ function SatisfactoryCalculator() {
     // This would need to update the production line's shard settings
     // For now, this is a placeholder
     console.log(`Shards changed for ${key} to ${shards} in line ${lineId}`);
+  };
+
+  // Handler for toggling built status of production configurations
+  const toggleProdConfBuilt = (lineId, key) => {
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              builtProdConfs: {
+                ...l.builtProdConfs,
+                [key]: !l.builtProdConfs[key]
+              }
+            }
+          : l
+      )
+    });
+  };
+
+  // Handler for making a prodconf item into a production target
+  const makeProdConfTarget = (lineId, itemName) => {
+    const itemId = CONSTS.NAME2ITEM_ID[itemName];
+    if (itemId === undefined) return;
+
+    // Check if item is already a target
+    const line = world.productionLines.find(l => l.id === lineId);
+    if (!line) return;
+
+    const isAlreadyTarget = line.targetItems.some(t => t.item_id === itemId);
+    if (isAlreadyTarget) return;
+
+    // Get default recipe and calculate rate
+    const item = CONSTS.ITEMS[itemId];
+    const recipes = item.get_recipes ? item.get_recipes(world) : [];
+    const defaultRecipe = recipes.find(r => r.isDefault) || recipes[0];
+
+    // Calculate default rate: (output / time) * 60
+    let defaultRate = 10; // fallback
+    if (defaultRecipe && defaultRecipe.time) {
+      defaultRate = (defaultRecipe.output / defaultRecipe.time) * 60;
+    }
+
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map(l =>
+        l.id === lineId
+          ? {
+              ...l,
+              targetItems: [...l.targetItems, { item_id: itemId, rate: defaultRate }]
+            }
+          : l
+      )
+    });
+  };
+
+  // Helper function to check if all dependencies for a target item are built
+  const checkTargetDependenciesBuilt = (line, targetItemId) => {
+    if (!line.tiers || !line.results || !line.builtProdConfs) return false;
+
+    const targetItemName = CONSTS.ITEMS[targetItemId].name;
+
+    // Get all prodconfs (buildings) needed for this target
+    const requiredKeys = new Set();
+
+    // Traverse the tiers to find all nodes that contribute to this target
+    const visited = new Set();
+    const queue = [targetItemName];
+
+    while (queue.length > 0) {
+      const itemName = queue.shift();
+      if (visited.has(itemName)) continue;
+      visited.add(itemName);
+
+      // Find nodes for this item in the tiers
+      line.tiers.forEach((tier, tierIdx) => {
+        const itemId = CONSTS.NAME2ITEM_ID[itemName];
+        if (tier[itemId]) {
+          const node = tier[itemId];
+
+          // Add the key for this node's production configuration
+          if (node.recipe) {
+            // Find matching building entries in results
+            if (line.results && line.results.buildings) {
+              line.results.buildings.forEach(entry => {
+                if (entry.item === itemName) {
+                  requiredKeys.add(entry.key);
+                }
+              });
+            }
+          }
+
+          // Add dependencies (inputs) to queue
+          if (node.supplied_by_nodes) {
+            Object.keys(node.supplied_by_nodes).forEach(supplierId => {
+              const supplierItem = CONSTS.ITEMS[parseInt(supplierId)];
+              if (supplierItem && !supplierItem.is_resource) {
+                queue.push(supplierItem.name);
+              }
+            });
+          }
+        }
+      });
+    }
+
+    // Check if all required prodconfs are built
+    for (const key of requiredKeys) {
+      if (!line.builtProdConfs[key]) {
+        return false;
+      }
+    }
+
+    return requiredKeys.size > 0; // Return true only if there are dependencies and all are built
   };
 
   // ========================================
@@ -1281,8 +1424,11 @@ function SatisfactoryCalculator() {
                         </div>
 
                         <div className="space-y-3">
-                          {line.targetItems.map((target, index) => (
-                            <div key={index} className="grid md:grid-cols-2 gap-4 p-3 bg-gray-600 rounded border border-gray-500">
+                          {line.targetItems.map((target, index) => {
+                            const allDepsBuilt = checkTargetDependenciesBuilt(line, target.item_id);
+                            const borderClass = allDepsBuilt ? 'border-2 border-green-500' : 'border border-gray-500';
+                            return (
+                            <div key={index} className={`grid md:grid-cols-2 gap-4 p-3 bg-gray-600 rounded ${borderClass}`}>
                               <div>
                                 <label className="block text-orange-300 font-semibold mb-1 text-sm">
                                   Item {line.targetItems.length > 1 ? `#${index + 1}` : ''}
@@ -1325,7 +1471,8 @@ function SatisfactoryCalculator() {
                                 )}
                               </div>
                             </div>
-                          ))}
+                          );
+                          })}
                         </div>
                       </div>
 
@@ -1399,7 +1546,15 @@ function SatisfactoryCalculator() {
                             </h3>
                             <div className="grid md:grid-cols-2 gap-3">
                               {line.results && line.results.buildings
-                               .sort((a, b) => a.building.localeCompare(b.building) || a.item.localeCompare(b.item))
+                               .sort((a, b) => {
+                                 // Sort by building tech level (higher tech first)
+                                 const techA = BUILDING_TECH_ORDER[a.building] ?? 0;
+                                 const techB = BUILDING_TECH_ORDER[b.building] ?? 0;
+                                 if (techB !== techA) return techB - techA;
+
+                                 // Then by item name
+                                 return a.item.localeCompare(b.item);
+                               })
                                .map((entry) => {
                                  const key = entry.key;
                                  const maxShards = entry.intCount * 3;
@@ -1426,15 +1581,48 @@ function SatisfactoryCalculator() {
                                    totalPower = basePower * entry.intCount;
                                  }
 
+                                 // Check if this item is already a production target
+                                 const isTarget = line.targetItems.some(t => CONSTS.ITEMS[t.item_id].name === entry.item);
+
+                                 // Check if this prodconf is marked as built
+                                 const isBuilt = line.builtProdConfs && line.builtProdConfs[key];
+
+                                 // Apply green outline if built
+                                 const borderClass = isBuilt ? 'border-2 border-green-500' : 'border border-gray-600';
+
                                  return (
-                                   <div key={key} className="bg-gray-700 rounded p-4 border border-gray-600">
-                                     <div className="font-semibold text-orange-300 mb-1">
-                                       {entry.building} → {entry.item}
-                                       {entry.totalSplits > 1 && (
-                                         <span className="text-yellow-400 ml-2">
-                                           #{entry.splitIndex} of {entry.totalSplits}
-                                         </span>
-                                       )}
+                                   <div key={key} className={`bg-gray-700 rounded p-4 ${borderClass}`}>
+                                     <div className="flex items-start justify-between mb-2">
+                                       <div className="flex-1">
+                                         <div className="font-semibold text-orange-300 mb-1">
+                                           {entry.building} → {entry.item}
+                                           {entry.totalSplits > 1 && (
+                                             <span className="text-yellow-400 ml-2">
+                                               #{entry.splitIndex} of {entry.totalSplits}
+                                             </span>
+                                           )}
+                                         </div>
+                                       </div>
+                                       <div className="flex items-center gap-2 ml-2">
+                                         <label className="flex items-center gap-1 cursor-pointer">
+                                           <input
+                                             type="checkbox"
+                                             checked={isBuilt || false}
+                                             onChange={() => toggleProdConfBuilt(line.id, key)}
+                                             className="w-4 h-4 cursor-pointer"
+                                           />
+                                           <span className="text-xs text-gray-400">Built</span>
+                                         </label>
+                                         {!isTarget && (
+                                           <button
+                                             onClick={() => makeProdConfTarget(line.id, entry.item)}
+                                             className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold py-1 px-2 rounded transition-colors duration-200"
+                                             title="Make this a production target"
+                                           >
+                                             → Target
+                                           </button>
+                                         )}
+                                       </div>
                                      </div>
                                      {entry.consumers && entry.consumers.length > 0 && (
                                        <div className="text-xs text-gray-400 mb-2">
