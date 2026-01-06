@@ -1,9 +1,8 @@
 const { useState, useEffect } = React;
 
-const satdata = require( './satdata.js' );
-
-const CONSTS = satdata.CONSTS;
-const ITEMS = CONSTS.ITEMS;
+// satdata.js is loaded first, making CONSTS and satdata globally available
+// CONSTS is already global from satdata.js, no need to redeclare
+// Access via: CONSTS (global) or satdata.CONSTS (via window.satdata)
 
 
 function SatisfactoryCalculator() {
@@ -25,7 +24,32 @@ function SatisfactoryCalculator() {
   });
 
   const calculate = () => {
-    const line = satdata.setupProdConf(world.productionLines[world.activeLineIdx]);
+    const lineIdx = world.activeLineIdx;
+    const line = world.productionLines[lineIdx];
+
+    // Call setupProdConf which populates line.tiers
+    satdata.setupProdConf(line, world);
+
+    // Update state with the modified line
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map((l, idx) =>
+        idx === lineIdx ? line : l
+      )
+    });
+  };
+
+  // Calculate a specific production line by index
+  const calculateLine = (lineIdx) => {
+    const line = world.productionLines[lineIdx];
+    satdata.setupProdConf(line, world);
+
+    setWorld({
+      ...world,
+      productionLines: world.productionLines.map((l, idx) =>
+        idx === lineIdx ? line : l
+      )
+    });
   };
 
   // reality -> world + calcualted state
@@ -304,7 +328,7 @@ function SatisfactoryCalculator() {
             </div>
 
             <div className="space-y-4">
-              {productionLines.map((line) => (
+              {world.productionLines.map((line, lineIndex) => (
                 <div key={line.id} className="bg-gray-700 rounded-lg border-2 border-gray-600">
                   {/* Production Line Header */}
                   <div className="flex items-center gap-3 p-4 bg-gray-750">
@@ -423,11 +447,90 @@ function SatisfactoryCalculator() {
                       </div>
 
                       <button
-                        onClick={() => calculateProduction(line.id)}
+                        onClick={() => calculateLine(lineIndex)}
                         className="w-full mb-4 bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded transition-colors duration-200"
                       >
                         Calculate Production Chain
                       </button>
+
+                      {/* Tier Display - NEW SECTION */}
+                      {line.tiers && line.tiers.length > 0 && (
+                        <div className="bg-gray-700 rounded-lg p-4 border-2 border-purple-700 my-4">
+                          <h3 className="text-lg font-bold text-purple-400 mb-4">
+                            Production Tiers (End Product → Resources)
+                          </h3>
+
+                          {line.tiers.map((tier, tierIdx) => {
+                            // Get all nodes in this tier
+                            const tierNodes = Object.entries(tier).map(([itemId, node]) => ({
+                              itemId,
+                              ...node
+                            }));
+
+                            // Skip empty tiers
+                            if (tierNodes.length === 0) return null;
+
+                            return (
+                              <div
+                                key={tierIdx}
+                                className="mb-4 pb-4 border-b border-gray-600 last:border-b-0"
+                              >
+                                {/* Tier Header */}
+                                <div className="text-sm font-semibold text-purple-300 mb-3">
+                                  Tier {tierIdx}
+                                  {tierIdx === 0 ? ' (Target Products)' : ''}
+                                  {tierNodes.every(n => n.item.is_resource) ? ' (Raw Resources)' : ''}
+                                </div>
+
+                                {/* Tier Items in Horizontal Row */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                                  {tierNodes.map((node) => (
+                                    <div
+                                      key={node.itemId}
+                                      className="bg-gray-600 rounded-lg p-3 border-2 border-purple-500/50 hover:border-purple-400 transition-colors"
+                                    >
+                                      {/* Item Name */}
+                                      <div className="font-bold text-purple-300 text-sm mb-1">
+                                        {node.item.name}
+                                        {node.item.is_fluid && <span className="ml-1 text-blue-400">💧</span>}
+                                      </div>
+
+                                      {/* Production Rate */}
+                                      <div className="text-white text-lg font-semibold">
+                                        {node.rate.toFixed(2)}/min
+                                      </div>
+
+                                      {/* Building Info (if not a raw resource) */}
+                                      {!node.item.is_resource && node.recipe && (
+                                        <div className="mt-2 pt-2 border-t border-gray-500">
+                                          <div className="text-xs text-gray-300">
+                                            {node.recipe.building}
+                                          </div>
+                                          <div className="text-sm text-white">
+                                            {node.machines && node.machines.toFixed(2)} machines
+                                          </div>
+                                          {node.clocking && node.clocking !== 1 && (
+                                            <div className="text-xs text-yellow-300">
+                                              @ {(node.clocking * 100).toFixed(0)}% clock
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Raw Resource Note */}
+                                      {node.item.is_resource && (
+                                        <div className="text-xs text-orange-300 mt-1">
+                                          {node.item.is_ore ? '⛏️ Mined' : node.item.is_fluid ? '💧 Extracted' : '📦 Resource'}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {/* Results Section */}
                       {line.results && (
@@ -714,7 +817,9 @@ function SatisfactoryCalculator() {
       </div>
     </div>
   );
-  
+
 }
 
-SatisfactoryCalculator();
+// Render the React component
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<SatisfactoryCalculator />);

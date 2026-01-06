@@ -13,7 +13,10 @@
       "Bash(node check_all_recipes.js:*)",
       "Bash(node:*)",
       "Bash(ls:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(cat:*)",
+      "Bash(git -C /devel/proj/satisfactory_production_planning log --oneline -20)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

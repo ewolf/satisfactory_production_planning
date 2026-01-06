@@ -623,10 +623,19 @@ const setupProdConf = (line,world) => {
 };
 
 
-module.exports = {
-  CONSTS,
-  setupProdConf,
-};
+// Export for Node.js or expose globally for browser
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    CONSTS,
+    setupProdConf,
+  };
+} else {
+  // Browser environment - expose as globals
+  window.satdata = {
+    CONSTS,
+    setupProdConf,
+  };
+}
 
 const TEST = false;
 
