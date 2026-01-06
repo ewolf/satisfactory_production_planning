@@ -15,11 +15,17 @@ function SatisfactoryCalculator() {
     isExpanded: true
   };
 
-  const [world, setWorld] = useState({
+  const DEFAULT_WORLD = {
     name: 'my world',
     productionLines: [DEFAULT_LINE],
     activeLineIdx: 0,
-  });
+    selectedBelt: 'Mk.1',
+    selectedPipe: 'Mk.1',
+    selectedMiner: 'Miner Mk.1',
+    selectedAlternatives: {},
+  }
+
+  const [world, setWorld] = useState(DEFAULT_WORLD);
 
   // UI state for global settings
   const [selectedBelt, setSelectedBelt] = useState('Mk.1');
@@ -188,14 +194,7 @@ debugger;
 
   // Save state to localStorage
   const saveToLocalStorage = () => {
-    const state = {
-      productionLines: world.productionLines,
-      selectedBelt,
-      selectedPipe,
-      selectedMiner,
-      selectedAlternates
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(world));
   };
 
 
@@ -204,20 +203,8 @@ debugger;
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        const state = JSON.parse(saved);
-
-        // New format with productionLines
-        if (state.productionLines) {
-          setWorld({
-            ...world,
-            productionLines: state.productionLines,
-          });
-        }
-
-        if (state.selectedBelt) setSelectedBelt(state.selectedBelt);
-        if (state.selectedPipe) setSelectedPipe(state.selectedPipe);
-        if (state.selectedMiner) setSelectedMiner(state.selectedMiner);
-        if (state.selectedAlternates) setSelectedAlternates(state.selectedAlternates);
+        const world = JSON.parse(saved);
+        setWorld(world);
         return true;
       }
     } catch (error) {
@@ -228,10 +215,7 @@ debugger;
 
   // Export data to JSON file
   const exportToFile = () => {
-    const dataStr = JSON.stringify({
-      productionLines: world.productionLines,
-      name: world.name,
-    }, null, 2);
+    const dataStr = JSON.stringify(world,null,2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -249,13 +233,9 @@ debugger;
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const imported = JSON.parse(e.target.result);
-        if (imported.productionLines) {
-          setWorld({
-            ...world,
-            productionLines: imported.productionLines,
-            name: imported.name || world.name,
-          });
+        const world = JSON.parse(e.target.result);
+        if (world) {
+          setWorld(world);
         }
       } catch (error) {
         console.error('Error importing file:', error);

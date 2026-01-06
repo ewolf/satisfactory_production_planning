@@ -30,7 +30,8 @@ const CONSTS = {
     { building_id: 11, name: 'Refinery', power: 30 },
     { building_id: 12, name: 'Resource Well Extractor', power: 0, rate: 120 },
     { building_id: 13, name: 'Smelter', power: 4 },
-    { building_id: 14, name: 'Water Extractor', power: 20, rate: 120 }
+    { building_id: 14, name: 'Water Extractor', power: 20, rate: 120 },
+    { building_id: 15, name: 'Nuclear Power Plant', power: 0 },
   ],
 
 // All items (auto-generated from recipes)
@@ -408,23 +409,17 @@ const ITEMS = CONSTS.ITEMS;
 
 function recipesForItem( world ) {
   world = world || {};
-  let alts = world.alt_recipes || {};
+  let alts = world.selectedAlternatives || {};
   let rs;
-try {
-    rs = this.recipes ? Object.values(this.recipes)
+  rs = this.recipes ? Object.values(this.recipes)
     .sort((a,b)=>
       {
         const d1 = a.isDefault&&b.isDefault?0:a.isDefault?-1:1;
         const i1 = a.item_id==this.item_id?-1:b.item_id==this.item_id?1:0;
-//  console.log( a.name, b.name, d1, i1 );
+        //  console.log( a.name, b.name, d1, i1 );
         return d1 || i1;
       } )
-        .filter(r => r.isDefault || alts[r.name] ) : [];
-//console.log( rs.map( r => r.name ) );
-//  asdf();
-} catch(e) {
-console.log(e,"blep");
-}
+    .filter(r => r.isDefault || alts[r.name] ) : [];
   return rs;
 }
 
@@ -501,17 +496,22 @@ const setupProdConf = (line,world) => {
   const tiers = line.tiers;
 
   const needed = {};
+
+  const item_name2net_rate = {};
+  const item_name2prod_node = {};
   
   const addNeeded = (item,recipe,rate_adjust) => {
-//    console.log( `    ${item.name}`);
+    console.log( `    ${item.name}`);
     let node = needed[item.item_id];
 
     // death check
-    if (!recipe && !item.is_ore && ((item.name != 'Water' && item.name != 'Nitrogen Gas' && item.name != 'Crude Oil') || ! item.is_resource) ) {
+    if (!recipe && !item.is_ore && !(item.name.match( /^(Water|Nitrogen Gas|Crude Oil|Wood)$/) || item.is_resource) ) {
       console.log( '))))))', item, item.recipes,recipe, rate_adjust, '<<<<<' );
       asdfasdf();
     }
     let itemRate = rate_adjust * (recipe ? recipe.outputs.filter( op => op.item_id == item.item_id )[0].rate : item.name == 'Water' ? 120 : 60);
+
+    item_name2net_rate[item.name] = (item_name2net_rate[item.name] || 0 ) + itemRate;
 
     if (node) {
       node.rate = node.rate + itemRate;
@@ -524,9 +524,8 @@ const setupProdConf = (line,world) => {
             supplies_nodes: {},
             supplied_by_nodes: {},
           };
+      item_name2prod_node[item.name] = node;
     }
-
-    //let more = [];
 
     if (recipe) {
 
@@ -535,16 +534,14 @@ const setupProdConf = (line,world) => {
       recipe.inputs.forEach( inp => {
         const inp_item = ITEMS[inp.item_id];
         const inp_recipe = inp_item.get_recipes(world)[0];
-
         const rate = rate_adjust * inp.rate;
+        item_name2net_rate[inp_item.name] = (item_name2net_rate[inp_item.name] || 0 ) - rate
         if (inp_recipe && ! inp_item.is_ore) {
           const inp_recip_output_rate = inp_recipe.outputs.filter( op => op.item_id == inp.item_id )[0].rate;
           const inp_rate_adjust = rate / inp_recip_output_rate;
-          //more.push( () => addNeeded(inp_item, inp_recipe, inp_rate_adjust));
           addNeeded(inp_item, inp_recipe, inp_rate_adjust);
         } else {
           const extract_rate_adj = rate / (inp_item.name == 'Water' ? 120 : 60);
-          //more.push( () => addNeeded(inp_item, null, extract_rate_adj));
           addNeeded(inp_item, null, extract_rate_adj);
         }
       });
@@ -556,9 +553,12 @@ const setupProdConf = (line,world) => {
       node.building = BUILDING_NAME2BUILDING['Resource Well Extractor'];
     } else if (item.name == 'Crud Oil') {
       node.building = BUILDING_NAME2BUILDING['Oil Extractor'];
+    } else if (item.is_resource) {
+      node.building = BUILDING_NAME2BUILDING[world.selectedMiner];
     }
-
-      //return more;
+    if(!node.building) {
+      console.log( item, "NO BUILD?");
+    }
   };
 
   Object.keys(line.targetItems).forEach( item_id => {
@@ -569,16 +569,9 @@ const setupProdConf = (line,world) => {
     const inp_output_rate = recipe.outputs.filter( op => op.item_id == item_id )[0].rate;
     const rate_adjust = targRate / inp_output_rate;
     addNeeded( targItem, recipe, rate_adjust );
-/*
-    const more = addNeeded( targItem, recipe, rate_adjust );
-    while( more.length > 0 ) {
-      const m = more.pop();
-      const even_more = m();
-      more.push( ...even_more );
-    }
-*/
   });
 
+  // find building_count, clocking, supplied_by_nodes, supplies_nodes
   Object.values( needed ).forEach( node => {
     const recipe = node.recipe;
     const item = node.item;
@@ -617,6 +610,7 @@ const setupProdConf = (line,world) => {
     }
   } );
 
+  // puts item (or it moves to) the appropriate tier
   const updateTier = (item_id, tier_idx) => {
     let tier = tiers[tier_idx];
     if (!tier) {
@@ -644,6 +638,9 @@ const setupProdConf = (line,world) => {
 //  console.log(tiers.map( t => { return Object.keys(t).map(k => ITEMS[k].name)} ), "TIERS");
 
 //  console.log(tiers);
+  line.item_name2net_rate = item_name2net_rate;
+  line.item_name2prod_node = item_name2prod_node;
+
   return line;
 };
 
@@ -667,10 +664,18 @@ let print_prodline = line => {
 
   tiers.forEach( (tier,idx) => {
     console.log( `==== TIER ${idx} =====` );
-    tier.forEach( prodconf => {
+    Object.values(tier).forEach( prodconf => {
       const item = prodconf.item;
       const recipe = prodconf.recipe;
+      const building = prodconf.building;
+
       console.log( `    ------ ${item.name} -----`);
+      console.log( `    ${prodconf.rate.toFixed(1)}/min ${item.name} produced by ${prodconf.building_count} ${building.name}${prodconf.building_count > 1 ? 's':''} at clock rate ${prodconf.clocking.toFixed(3)}` );
+      recipe && recipe.inputs.forEach( inp => {
+        console.log( `       ${ITEMS[inp.item_id].name} @ ${inp.rate}/min` );
+      } );
+//      console.log( `    ` );
+//      console.log( `    ` );
       
     } );
   });
@@ -679,8 +684,17 @@ let print_prodline = line => {
 const TEST = true;
 
 if (TEST) {
+  const world = {
+    name:'test world',
+    selectedBelt: 'Mk.1',
+    selectedPipe: 'Mk.1',
+    selectedMiner: 'Miner Mk.1',
+    selectedAlternatives: {},
+    selectedAlternatives: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ),
+  };
   CONSTS.DEFAULT_RECIPES.forEach( rec => {
     let name = rec.name;
+    console.log( `---- ${name} ----` );
     if (name.match(/^Ficsite Ingot/)) name = 'Ficsite Ingot';
     if (name.match(/^Synthetic Power Shard/)) name = 'Power Shard';
     const item = CONSTS.NAME2ITEM[name];
@@ -691,19 +705,22 @@ if (TEST) {
       name: 'test prod line',
       targetItems: items,
     };
-    
-    //  If (!name.match(/AI Expansion Server|Alien Power Matrix|Ficsonium Fuel Rod|Superposition Oscillator|Synthetic Power Shard|Dark Matter Crystal/)) {
-    //  if (name == 'Cable') {
-    //  if (name == 'Dark Matter Residue') {
-    //    console.log( '=====', line, rec, '==--==' );
-//    if (true||name.match(/Rocket Fuel/)) {
-     if (name.match(/Uranium Waste/)) {
-//     if (true||Name.match(/Plutonium Fuel Rod/)) {
-       const line = setupProdConf( line, {alt_recipes: CONSTS.ALT_RECIPES.reduce( (acc,val) => { acc[val.name] = val; return acc }, {} ) } );
-       print_prodline(line);
-
-     }
-
+    setupProdConf( line, world );
   } );
+
+  CONSTS.ALT_RECIPES.forEach( rec => {
+    let name = rec.name;
+    console.log( `---- ${name} ----` );
+
+    const item = CONSTS.NAME2ITEM[rec.replaces];
+    const rate = rec.outputs.filter(o => o.item_id==item.item_id)[0].rate;
+    const items = {};
+    items[item.item_id] = rate;
+    let line = {
+      name: 'test prod line',
+      targetItems: items,
+    };
+    setupProdConf( line, world );
+  })
 }
 
